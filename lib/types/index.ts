@@ -11,6 +11,7 @@ export interface Order {
   amount?: number;
   items?: string;
   priority?: 'low' | 'normal' | 'high';
+  rank: number; // Order position in dispatch sequence
   rawData: Record<string, any>; // Store all original CSV data for flexibility
 }
 

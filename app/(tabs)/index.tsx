@@ -1,106 +1,100 @@
-import { ScrollView, TextInput, View, Pressable, Text } from "react-native";
-import { useCSVParser } from "@/hooks/use-csv-parser";
-import { OrderList } from "@/components/dispatch/order-list";
+import { useRouter } from "expo-router";
+import { View, Pressable, Text, TouchableOpacity } from "react-native";
+import DraggableFlatList, {
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
+import { useDispatchContext } from "@/context/dispatch-context";
+import { OrderCard } from "@/components/dispatch/order-card";
+import { Order } from "@/lib/types";
+import * as Haptics from "expo-haptics";
 
 export default function DispatchScreen() {
-  const {
-    csvText,
-    setCsvText,
-    orders,
-    isLoading,
-    pasteFromClipboard,
-    parseCSV,
-    clear,
-  } = useCSVParser();
+  const router = useRouter();
+  const { orders, setOrders } = useDispatchContext();
+
+  const handleDragEnd = ({ data }: { data: Order[] }) => {
+    // Update ranks based on new position
+    const updatedOrders = data.map((order, index) => ({
+      ...order,
+      rank: index + 1,
+    }));
+    setOrders(updatedOrders);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   return (
-    <ScrollView className="flex-1 bg-white dark:bg-gray-900">
-      <View className="px-4 py-6">
-        {/* Header */}
-        <View className="mb-6">
-          <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Dispatch
-          </Text>
-          <Text className="text-base text-gray-600 dark:text-gray-400">
-            Paste CSV and create dispatches for drivers
-          </Text>
-        </View>
-
-        {/* Paste Section */}
-        <View className="mb-6">
-          <View className="flex-row justify-between items-center mb-3">
-            <Text className="text-lg font-semibold text-gray-900 dark:text-white">
-              Paste CSV Data
-            </Text>
-            <Pressable
-              onPress={pasteFromClipboard}
-              className="bg-blue-500 px-4 py-2 rounded-lg active:bg-blue-600"
-            >
-              <Text className="text-white font-medium">📋 From Clipboard</Text>
-            </Pressable>
-          </View>
-
-          <TextInput
-            value={csvText}
-            onChangeText={setCsvText}
-            placeholder="Paste your CSV data here...
-Or tap 'From Clipboard' button above"
-            placeholderTextColor="#9CA3AF"
-            multiline
-            numberOfLines={8}
-            className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-base"
-            style={{
-              textAlignVertical: "top",
-              minHeight: 150,
-            }}
-          />
-
-          {/* Action Buttons */}
-          <View className="flex-row gap-3 mt-3">
-            <Pressable
-              onPress={parseCSV}
-              disabled={isLoading || !csvText.trim()}
-              className={`flex-1 py-3 rounded-lg ${
-                isLoading || !csvText.trim()
-                  ? "bg-gray-400"
-                  : "bg-green-600 active:bg-green-700"
-              }`}
-            >
-              <Text className="text-white text-center font-semibold text-base">
-                {isLoading ? "⏳ Parsing..." : "✅ Parse CSV"}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={clear}
-              className="bg-gray-500 px-6 py-3 rounded-lg active:bg-gray-600"
-            >
-              <Text className="text-white font-semibold">Clear</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Orders List */}
-        <OrderList orders={orders} />
-
-        {/* Instructions */}
-        {orders.length === 0 && !csvText && (
-          <View className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <Text className="text-base font-semibold text-blue-900 dark:text-blue-200 mb-2">
-              📋 How to use
-            </Text>
-            <Text className="text-sm text-blue-800 dark:text-blue-300 mb-2">
-              1. Copy your CSV data from Excel/Google Sheets
-            </Text>
-            <Text className="text-sm text-blue-800 dark:text-blue-300 mb-2">
-              2. Tap "From Clipboard" or paste manually
-            </Text>
-            <Text className="text-sm text-blue-800 dark:text-blue-300">
-              3. Tap "Parse CSV" to convert to orders
-            </Text>
-          </View>
-        )}
+    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <View className="bg-white dark:bg-gray-800 px-4 py-6 border-b border-gray-200 dark:border-gray-700">
+        <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          Dispatch
+        </Text>
+        <Text className="text-base text-gray-600 dark:text-gray-400">
+          Create dispatches for drivers
+        </Text>
       </View>
-    </ScrollView>
+
+      {/* Empty State or Orders List */}
+      {orders.length === 0 ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <View className="items-center mb-8">
+            <View className="bg-blue-100 dark:bg-blue-900/30 w-24 h-24 rounded-full items-center justify-center mb-4">
+              <Text className="text-5xl">📋</Text>
+            </View>
+            <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              No Orders Yet
+            </Text>
+            <Text className="text-base text-gray-600 dark:text-gray-400 text-center">
+              Add your CSV orders to start creating dispatches
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push("/paste-csv")}
+            className="bg-blue-600 px-8 py-4 rounded-xl active:bg-blue-700"
+          >
+            <Text className="text-white font-semibold text-lg">
+              + Add Orders
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View className="flex-1">
+          {/* Header with Count */}
+          <View className="px-4 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <View className="flex-row justify-between items-center">
+              <Text className="text-lg font-semibold text-gray-900 dark:text-white">
+                {orders.length} Orders - Drag to reorder
+              </Text>
+              <Pressable
+                onPress={() => router.push("/paste-csv")}
+                className="bg-blue-600 px-4 py-2 rounded-lg active:bg-blue-700"
+              >
+                <Text className="text-white font-medium">+ Add More</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Draggable List */}
+          <DraggableFlatList
+            data={orders}
+            onDragEnd={handleDragEnd}
+            keyExtractor={(item) => item.id}
+            activationDistance={10}
+            renderItem={({ item, drag, isActive }) => (
+              <ScaleDecorator>
+                <TouchableOpacity
+                  onLongPress={drag}
+                  disabled={isActive}
+                  className="px-4"
+                >
+                  <OrderCard order={item} index={item.rank - 1} />
+                </TouchableOpacity>
+              </ScaleDecorator>
+            )}
+            contentContainerStyle={{ paddingVertical: 16 }}
+          />
+        </View>
+      )}
+    </View>
   );
 }

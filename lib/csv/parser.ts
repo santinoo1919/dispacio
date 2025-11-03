@@ -66,13 +66,20 @@ export class CSVParser {
           amount: amount ? parseFloat(amount.replace(/[^0-9.-]/g, '')) : undefined,
           items: items || undefined,
           priority: 'normal' as const,
+          rank: 0, // Will be updated after filtering
           rawData: row, // Store all original data
         };
       }).filter(order => order !== null) as Order[];
 
+      // Set ranks after filtering out invalid orders
+      const rankedOrders = orders.map((order, index) => ({
+        ...order,
+        rank: index + 1,
+      }));
+
       return {
         success: true,
-        orders,
+        orders: rankedOrders,
         headers,
       };
     } catch (error) {
