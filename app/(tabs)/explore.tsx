@@ -100,22 +100,33 @@ export default function MapScreen() {
     };
   }, [orders]);
 
-  // Prepare markers for iOS (AppleMaps)
+  // Prepare markers for iOS (AppleMaps) with SF Symbols and driver colors
   const appleMarkers = useMemo(() => {
     return dispatchSeries.flatMap((series) => {
-      const driver = series.driverId
-        ? DRIVERS.find((d) => d.id === series.driverId)
-        : null;
-      const driverInitials = driver?.initials || "—";
-
-      return series.orders.map((order, index) => ({
-        id: order.id,
-        coordinates: order.coordinates,
-        title: `[${driverInitials}] ${order.customerName}`,
-        subtitle: `Stop ${index + 1}/${series.orders.length}`,
-        color: series.color,
-      }));
+      return series.orders.map((order, index) => {
+        const stopNumber = index + 1;
+        return {
+          id: order.id,
+          coordinates: order.coordinates,
+          systemImage: "shippingbox.fill", // SF Symbol for delivery/order
+          tintColor: series.color, // Driver color
+          title: order.customerName, // Customer name as title
+          subtitle: `Stop ${stopNumber}/${series.orders.length}`, // Stop number as subtitle
+        };
+      });
     });
+  }, [dispatchSeries]);
+
+  // Prepare polylines for iOS (AppleMaps) - colored routes per driver
+  const applePolylines = useMemo(() => {
+    return dispatchSeries
+      .filter((series) => series.orders.length > 1) // Only show polylines for routes with multiple stops
+      .map((series) => ({
+        id: series.driverId || "unassigned",
+        coordinates: series.orders.map((order) => order.coordinates),
+        color: series.color, // Driver-specific color
+        width: 3,
+      }));
   }, [dispatchSeries]);
 
   // Prepare markers for Android (GoogleMaps)
@@ -199,6 +210,7 @@ export default function MapScreen() {
             zoom: mapRegion.zoom,
           }}
           markers={appleMarkers}
+          polylines={applePolylines}
         />
       ) : Platform.OS === "android" ? (
         <GoogleMaps.View
