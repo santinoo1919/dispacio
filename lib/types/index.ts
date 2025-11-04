@@ -13,6 +13,8 @@ export interface Order {
   priority?: "low" | "normal" | "high";
   rank: number; // Order position in dispatch sequence
   driverId?: string; // Driver assigned to this order
+  latitude?: number; // Optional: coordinate from CSV
+  longitude?: number; // Optional: coordinate from CSV
   rawData: Record<string, any>; // Store all original CSV data for flexibility
 }
 

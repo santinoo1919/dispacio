@@ -51,6 +51,10 @@ export class CSVParser {
         const notes = this.findColumn(row, ['notes', 'note', 'comments', 'special_instructions']);
         const amount = this.findColumn(row, ['amount', 'total', 'order_total', 'price', 'value']);
         const items = this.findColumn(row, ['items', 'products', 'order_items', 'product_list']);
+        
+        // Extract coordinates if available in CSV
+        const lat = this.findColumn(row, ['latitude', 'lat', 'coord_lat', 'y']);
+        const lng = this.findColumn(row, ['longitude', 'lng', 'lon', 'long', 'coord_lng', 'x']);
 
         // Validate required fields
         if (!orderId || !customerName || !address) {
@@ -65,6 +69,8 @@ export class CSVParser {
           notes: notes || undefined,
           amount: amount ? parseFloat(amount.replace(/[^0-9.-]/g, '')) : undefined,
           items: items || undefined,
+          latitude: lat ? parseFloat(lat) : undefined,
+          longitude: lng ? parseFloat(lng) : undefined,
           priority: 'normal' as const,
           rank: 0, // Will be updated after filtering
           rawData: row, // Store all original data

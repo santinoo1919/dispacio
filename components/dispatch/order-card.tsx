@@ -12,6 +12,7 @@ interface OrderCardProps {
   isDispatchMode?: boolean;
   isSelected?: boolean;
   driverInitials?: string;
+  driverColor?: string; // Color for driver initials circle
   onToggleSelect?: () => void;
 }
 
@@ -21,6 +22,7 @@ export function OrderCard({
   isDispatchMode = false,
   isSelected = false,
   driverInitials,
+  driverColor,
   onToggleSelect,
 }: OrderCardProps) {
   const CardWrapper = isDispatchMode ? Pressable : View;
@@ -62,7 +64,10 @@ export function OrderCard({
               )}
             </View>
           ) : driverInitials ? (
-            <View className="bg-green-500 w-8 h-8 rounded-full items-center justify-center">
+            <View
+              className="w-8 h-8 rounded-full items-center justify-center"
+              style={{ backgroundColor: driverColor || "#9CA3AF" }}
+            >
               <Text className="text-white font-semibold text-xs">
                 {driverInitials}
               </Text>

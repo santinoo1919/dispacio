@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState, useMemo } from "react";
 import { View, Pressable, Text, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
@@ -9,11 +10,12 @@ import { OrderCard } from "@/components/dispatch/order-card";
 import { DriverTabs } from "@/components/dispatch/driver-tabs";
 import { AssignmentButtons } from "@/components/dispatch/assignment-buttons";
 import { Order } from "@/lib/types";
-import { DRIVERS, getDriverById } from "@/lib/data/drivers";
+import { DRIVERS, getDriverById, getDriverColor } from "@/lib/data/drivers";
 import * as Haptics from "expo-haptics";
 
 export default function DispatchScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const {
     orders,
     setOrders,
@@ -78,7 +80,10 @@ export default function DispatchScreen() {
   return (
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <View className="bg-white dark:bg-gray-800 px-4 py-6 border-b border-gray-200 dark:border-gray-700">
+      <View
+        className="bg-white dark:bg-gray-800 px-4 py-6 border-b border-gray-200 dark:border-gray-700"
+        style={{ paddingTop: insets.top + 16 }}
+      >
         <View className="flex-row justify-between items-center mb-2">
           <Text className="text-3xl font-bold text-gray-900 dark:text-white">
             Dispatch
@@ -179,6 +184,7 @@ export default function DispatchScreen() {
                         isDispatchMode={true}
                         isSelected={selectedOrderIds.has(item.id)}
                         driverInitials={driver?.initials}
+                        driverColor={getDriverColor(item.driverId)}
                         onToggleSelect={() => toggleOrderSelection(item.id)}
                       />
                     </View>
@@ -200,6 +206,7 @@ export default function DispatchScreen() {
                         order={item}
                         index={index}
                         driverInitials={driver?.initials}
+                        driverColor={getDriverColor(item.driverId)}
                       />
                     </TouchableOpacity>
                   )}
