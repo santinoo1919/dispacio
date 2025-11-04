@@ -3,17 +3,38 @@
  * Individual draggable order card
  */
 
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import { Order } from "@/lib/types";
 
 interface OrderCardProps {
   order: Order;
   index: number;
+  isDispatchMode?: boolean;
+  isSelected?: boolean;
+  driverInitials?: string;
+  onToggleSelect?: () => void;
 }
 
-export function OrderCard({ order, index }: OrderCardProps) {
+export function OrderCard({
+  order,
+  index,
+  isDispatchMode = false,
+  isSelected = false,
+  driverInitials,
+  onToggleSelect,
+}: OrderCardProps) {
+  const CardWrapper = isDispatchMode ? Pressable : View;
+  const cardProps = isDispatchMode ? { onPress: onToggleSelect } : {};
+
   return (
-    <View className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-3 shadow-sm">
+    <CardWrapper
+      {...cardProps}
+      className={`bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm ${
+        isSelected
+          ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
+          : "border-gray-200 dark:border-gray-700"
+      }`}
+    >
       {/* Header with Order Number */}
       <View className="flex-row items-start mb-2">
         <View className="bg-blue-500 w-8 h-8 rounded-full items-center justify-center mr-3">
@@ -28,7 +49,27 @@ export function OrderCard({ order, index }: OrderCardProps) {
           </Text>
         </View>
         <View className="ml-2">
-          <Text className="text-2xl text-gray-400">⋮⋮</Text>
+          {isDispatchMode ? (
+            <View
+              className={`w-6 h-6 rounded border-2 items-center justify-center ${
+                isSelected
+                  ? "bg-blue-600 border-blue-600"
+                  : "border-gray-300 dark:border-gray-600"
+              }`}
+            >
+              {isSelected && (
+                <Text className="text-white text-xs font-bold">✓</Text>
+              )}
+            </View>
+          ) : driverInitials ? (
+            <View className="bg-green-500 w-8 h-8 rounded-full items-center justify-center">
+              <Text className="text-white font-semibold text-xs">
+                {driverInitials}
+              </Text>
+            </View>
+          ) : (
+            <Text className="text-2xl text-gray-400">⋮⋮</Text>
+          )}
         </View>
       </View>
 
@@ -53,7 +94,6 @@ export function OrderCard({ order, index }: OrderCardProps) {
           📝 {order.notes}
         </Text>
       )}
-    </View>
+    </CardWrapper>
   );
 }
-

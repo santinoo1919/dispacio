@@ -10,9 +10,17 @@ export interface Order {
   notes?: string;
   amount?: number;
   items?: string;
-  priority?: 'low' | 'normal' | 'high';
+  priority?: "low" | "normal" | "high";
   rank: number; // Order position in dispatch sequence
+  driverId?: string; // Driver assigned to this order
   rawData: Record<string, any>; // Store all original CSV data for flexibility
+}
+
+export interface Driver {
+  id: string;
+  name: string;
+  phone: string;
+  initials: string;
 }
 
 export interface Dispatch {
@@ -29,4 +37,3 @@ export interface CSVParseResult {
   error?: string;
   headers: string[];
 }
-

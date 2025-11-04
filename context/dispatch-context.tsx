@@ -16,9 +16,15 @@ interface DispatchContextType {
   orders: Order[];
   setOrders: (orders: Order[]) => void;
   isLoading: boolean;
+  isDispatchMode: boolean;
+  selectedOrderIds: Set<string>;
   pasteFromClipboard: () => void;
   parseCSV: () => CSVParseResult | null;
   clear: () => void;
+  toggleDispatchMode: () => void;
+  toggleOrderSelection: (orderId: string) => void;
+  assignSelectedOrders: (driverId: string) => void;
+  clearSelection: () => void;
 }
 
 const DispatchContext = createContext<DispatchContextType | undefined>(
@@ -29,6 +35,10 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
   const [csvText, setCsvText] = useState(SAMPLE_FMCG_CSV);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDispatchMode, setIsDispatchMode] = useState(false);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
+    new Set()
+  );
 
   const pasteFromClipboard = async () => {
     try {
@@ -75,6 +85,41 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
   const clear = () => {
     setCsvText("");
     setOrders([]);
+    setSelectedOrderIds(new Set());
+    setIsDispatchMode(false);
+  };
+
+  const toggleDispatchMode = () => {
+    setIsDispatchMode((prev) => !prev);
+    if (isDispatchMode) {
+      setSelectedOrderIds(new Set());
+    }
+  };
+
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) {
+        next.delete(orderId);
+      } else {
+        next.add(orderId);
+      }
+      return next;
+    });
+  };
+
+  const assignSelectedOrders = (driverId: string) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        selectedOrderIds.has(order.id) ? { ...order, driverId } : order
+      )
+    );
+    setSelectedOrderIds(new Set());
+    setIsDispatchMode(false);
+  };
+
+  const clearSelection = () => {
+    setSelectedOrderIds(new Set());
   };
 
   return (
@@ -85,9 +130,15 @@ export function DispatchProvider({ children }: { children: ReactNode }) {
         orders,
         setOrders,
         isLoading,
+        isDispatchMode,
+        selectedOrderIds,
         pasteFromClipboard,
         parseCSV,
         clear,
+        toggleDispatchMode,
+        toggleOrderSelection,
+        assignSelectedOrders,
+        clearSelection,
       }}
     >
       {children}
@@ -102,4 +153,3 @@ export function useDispatchContext() {
   }
   return context;
 }
-
