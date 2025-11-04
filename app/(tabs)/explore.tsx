@@ -110,7 +110,7 @@ export default function MapScreen() {
           coordinates: order.coordinates,
           systemImage: "shippingbox.fill", // SF Symbol for delivery/order
           tintColor: series.color, // Driver color
-          title: order.customerName, // Customer name as title
+          title: `${stopNumber}. ${order.customerName}`, // Stop number + customer name as title
           subtitle: `Stop ${stopNumber}/${series.orders.length}`, // Stop number as subtitle
         };
       });

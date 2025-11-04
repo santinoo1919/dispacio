@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { useState, useMemo } from "react";
 import { View, Pressable, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
@@ -11,6 +12,10 @@ import { DriverTabs } from "@/components/dispatch/driver-tabs";
 import { AssignmentButtons } from "@/components/dispatch/assignment-buttons";
 import { Order } from "@/lib/types";
 import { DRIVERS, getDriverById, getDriverColor } from "@/lib/data/drivers";
+import {
+  generateWhatsAppMessage,
+  shareToWhatsApp,
+} from "@/lib/utils/whatsapp-share";
 import * as Haptics from "expo-haptics";
 
 export default function DispatchScreen() {
@@ -75,6 +80,20 @@ export default function DispatchScreen() {
   const handleAssign = (driverId: string) => {
     assignSelectedOrders(driverId);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleShareToWhatsApp = async () => {
+    if (!selectedDriverId || filteredOrders.length === 0) return;
+
+    const driver = getDriverById(selectedDriverId);
+    if (!driver) return;
+
+    try {
+      const message = generateWhatsAppMessage(driver, filteredOrders);
+      await shareToWhatsApp(driver.phone, message);
+    } catch (error) {
+      console.error("Failed to share:", error);
+    }
   };
 
   return (
@@ -213,6 +232,23 @@ export default function DispatchScreen() {
                 </ScaleDecorator>
               );
             }}
+            ListFooterComponent={
+              selectedDriverId &&
+              !isDispatchMode &&
+              filteredOrders.length > 0 ? (
+                <View className="px-4 py-4">
+                  <Pressable
+                    onPress={handleShareToWhatsApp}
+                    className="bg-green-500 rounded-lg active:bg-green-600 flex-row items-center justify-center gap-2 py-3"
+                  >
+                    <Ionicons name="logo-whatsapp" size={20} color="#fff" />
+                    <Text className="text-white text-center font-semibold">
+                      Share
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null
+            }
             contentContainerStyle={{ paddingTop: 16, paddingBottom: 16 }}
           />
         </View>
