@@ -8,10 +8,12 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 import "../global.css";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DispatchProvider } from "@/context/dispatch-context";
+import { toastConfig } from "@/lib/utils/toast";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -37,6 +39,7 @@ export default function RootLayout() {
             <StatusBar style="auto" />
           </ThemeProvider>
         </DispatchProvider>
+        <Toast config={toastConfig} />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

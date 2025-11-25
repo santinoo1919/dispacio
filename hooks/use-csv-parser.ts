@@ -4,11 +4,11 @@
  */
 
 import { useState } from "react";
-import { Alert } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { CSVParser } from "@/lib/csv/parser";
 import { Order, CSVParseResult } from "@/lib/types";
 import { SAMPLE_FMCG_CSV } from "@/lib/data/sample-orders";
+import { showToast } from "@/lib/utils/toast";
 
 export function useCSVParser() {
   const [csvText, setCsvText] = useState(SAMPLE_FMCG_CSV);
@@ -20,20 +20,21 @@ export function useCSVParser() {
       const clipboardText = await Clipboard.getStringAsync();
       if (clipboardText) {
         setCsvText(clipboardText);
+        showToast.success("Clipboard loaded", "CSV data pasted successfully");
       } else {
-        Alert.alert(
+        showToast.error(
           "Empty Clipboard",
           "Your clipboard is empty. Copy some CSV data first."
         );
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to read clipboard");
+      showToast.error("Error", "Failed to read clipboard");
     }
   };
 
   const parseCSV = (): CSVParseResult | null => {
     if (!csvText.trim()) {
-      Alert.alert("No Data", "Please paste CSV data first");
+      showToast.error("No Data", "Please paste CSV data first");
       return null;
     }
 
@@ -42,14 +43,12 @@ export function useCSVParser() {
 
     if (result.success) {
       setOrders(result.orders);
-      Alert.alert(
+      showToast.success(
         "Success!",
-        `Parsed ${
-          result.orders.length
-        } orders successfully.\n\nFound columns: ${result.headers.join(", ")}`
+        `Parsed ${result.orders.length} orders successfully. Found columns: ${result.headers.join(", ")}`
       );
     } else {
-      Alert.alert("Parse Error", result.error || "Failed to parse CSV");
+      showToast.error("Parse Error", result.error || "Failed to parse CSV");
       setOrders([]);
     }
     setIsLoading(false);

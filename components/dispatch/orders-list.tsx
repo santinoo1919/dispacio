@@ -3,14 +3,14 @@
  * Single Responsibility: Render draggable orders list
  */
 
-import { View, TouchableOpacity, Pressable, Text } from "react-native";
+import { getDriverById, getDriverColor } from "@/lib/data/drivers";
+import { Order } from "@/lib/types";
+import { Ionicons } from "@expo/vector-icons";
+import { Pressable, Text, TouchableOpacity, View } from "react-native";
 import DraggableFlatList, {
   ScaleDecorator,
 } from "react-native-draggable-flatlist";
-import { Ionicons } from "@expo/vector-icons";
-import { Order } from "@/lib/types";
 import { OrderCard } from "./order-card";
-import { getDriverById, getDriverColor } from "@/lib/data/drivers";
 
 interface OrdersListProps {
   orders: Order[];
@@ -61,9 +61,7 @@ export function OrdersList({
                     driverColor={getDriverColor(item.driverId)}
                     onToggleSelect={() => onToggleSelect(item.id)}
                   />
-                  {!isLast && (
-                    <View className="h-px bg-border w-full" />
-                  )}
+                  {!isLast && <View className="h-px bg-border w-full" />}
                 </View>
               ) : (
                 <TouchableOpacity
@@ -83,9 +81,7 @@ export function OrdersList({
                     driverInitials={driver?.initials}
                     driverColor={getDriverColor(item.driverId)}
                   />
-                  {!isLast && (
-                    <View className="h-px bg-border w-full" />
-                  )}
+                  {!isLast && <View className="h-px bg-border w-full" />}
                 </TouchableOpacity>
               )}
             </ScaleDecorator>
@@ -111,4 +107,3 @@ export function OrdersList({
     </View>
   );
 }
-

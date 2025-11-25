@@ -23,10 +23,10 @@ export function DispatchHeader({
 
   return (
     <View
-      className="bg-background-primary px-4 py-6 border-b border-border"
-      style={{ paddingTop: insets.top + 16 }}
+      className="bg-background-primary px-4 border-b border-border"
+      style={{ paddingTop: insets.top + 16, paddingBottom: 16 }}
     >
-      <View className="flex-row justify-between items-center mb-2">
+      <View className="flex-row justify-between items-center">
         <Text className="text-3xl font-bold text-text">Dispatch</Text>
         <View className="flex-row gap-2">
           {/* Only show "Import New" when orders exist */}
