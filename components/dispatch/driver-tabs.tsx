@@ -1,5 +1,5 @@
-import { View, Text, Pressable, ScrollView } from "react-native";
 import { Driver } from "@/lib/types";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 interface DriverTabsProps {
   drivers: Driver[];
@@ -17,7 +17,7 @@ export function DriverTabs({
   const unassignedCount = orderCounts["unassigned"] || 0;
 
   return (
-    <View className="bg-background-secondary border-b border-border">
+    <View className="bg-background-primary border-b border-border">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -28,15 +28,13 @@ export function DriverTabs({
           onPress={() => onSelectDriver(null)}
           className={`px-4 py-2 rounded-lg ${
             selectedDriverId === null
-              ? "bg-background-tertiary border border-border"
+              ? "bg-background-tertiary "
               : "bg-background-tertiary"
           }`}
         >
           <Text
             className={`font-semibold ${
-              selectedDriverId === null
-                ? "text-text"
-                : "text-text-secondary"
+              selectedDriverId === null ? "text-text" : "text-text-secondary"
             }`}
           >
             All ({unassignedCount})
@@ -50,7 +48,7 @@ export function DriverTabs({
             onPress={() => onSelectDriver(driver.id)}
             className={`px-4 py-2 rounded-lg ${
               selectedDriverId === driver.id
-                ? "bg-background-tertiary border border-border"
+                ? "bg-background-tertiary"
                 : "bg-background-tertiary"
             }`}
           >

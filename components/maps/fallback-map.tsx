@@ -6,6 +6,7 @@
 
 import { View, Text, ScrollView } from "react-native";
 import { Coordinates } from "@/lib/utils/geocoding";
+import { OrderCard } from "@/components/dispatch/order-card";
 
 interface OrderLocation {
   id: string;
@@ -70,50 +71,33 @@ export function FallbackMap({ orders, region }: FallbackMapProps) {
 
       {/* Locations List */}
       <ScrollView className="flex-1">
-        <View className="px-4 py-4 space-y-3">
-          {orders.map((order, index) => (
-            <View
-              key={order.id}
-              className="bg-background-secondary rounded-lg p-4 border border-border"
-            >
-              <View className="flex-row items-start justify-between mb-2">
-                <View className="flex-1">
-                  {order.stopNumber && (
-                    <View className="flex-row items-center mb-1">
-                      <View className="bg-background-tertiary px-2 py-0.5 rounded mr-2">
-                        <Text className="text-xs font-semibold text-text-secondary">
-                          Stop {order.stopNumber}
-                          {order.totalStops ? `/${order.totalStops}` : ""}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-                  <Text className="text-base font-semibold text-text mb-1">
-                    {order.customerName}
-                  </Text>
-                  <Text className="text-sm text-text-secondary mb-2">
-                    {order.address}
-                  </Text>
-                </View>
+        <View>
+          {orders.map((order, index) => {
+            const isLast = index === orders.length - 1;
+            return (
+              <View key={order.id}>
+                <OrderCard
+                  order={{
+                    id: order.id,
+                    customerName: order.customerName,
+                    address: order.address,
+                    rawData: {},
+                    rank: index + 1,
+                  }}
+                  index={index}
+                  variant="location"
+                  stopNumber={order.stopNumber}
+                  totalStops={order.totalStops}
+                  showCoordinates={true}
+                  coordinates={order.coordinates}
+                  driverName={order.driverName}
+                />
+                {!isLast && (
+                  <View className="h-px bg-border w-full" />
+                )}
               </View>
-
-              {/* Coordinates */}
-              <View className="flex-row items-center mt-2 pt-2 border-t border-border">
-                <Text className="text-xs text-text-tertiary font-mono">
-                  {order.coordinates.latitude.toFixed(6)},{" "}
-                  {order.coordinates.longitude.toFixed(6)}
-                </Text>
-              </View>
-
-              {order.driverName && (
-                <View className="mt-2">
-                  <Text className="text-xs text-text-tertiary">
-                    Driver: <Text className="font-medium">{order.driverName}</Text>
-                  </Text>
-                </View>
-              )}
-            </View>
-          ))}
+            );
+          })}
         </View>
       </ScrollView>
     </View>
