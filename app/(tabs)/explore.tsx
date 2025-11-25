@@ -4,15 +4,33 @@
  *
  * SIMPLIFIED: Uses coordinates directly from CSV if available
  * Falls back to geocoding only when coordinates are missing
+ * Gracefully handles Expo Go by showing fallback UI when native maps aren't available
  */
 
 import { View, Text, StyleSheet, Platform } from "react-native";
-import { AppleMaps, GoogleMaps } from "expo-maps";
 import { useMemo } from "react";
 import { useDispatchContext } from "@/context/dispatch-context";
 import { getOrderCoordinates, Coordinates } from "@/lib/utils/geocoding";
 import { Order } from "@/lib/types";
 import { DRIVERS, DRIVER_COLORS, getDriverColor } from "@/lib/data/drivers";
+import { isNativeMapAvailable } from "@/lib/utils/map-availability";
+import { FallbackMap } from "@/components/maps/fallback-map";
+
+// Conditionally import native maps (only if available)
+const getMapModule = (moduleName: "AppleMaps" | "GoogleMaps"): any => {
+  if (isNativeMapAvailable()) {
+    try {
+      const expoMaps = require("expo-maps");
+      return expoMaps[moduleName];
+    } catch (error) {
+      // Silently fail - will use fallback
+    }
+  }
+  return null;
+};
+
+const AppleMaps = getMapModule("AppleMaps");
+const GoogleMaps = getMapModule("GoogleMaps");
 
 const UNASSIGNED_COLOR = "#9CA3AF"; // Gray for unassigned orders
 
@@ -199,37 +217,56 @@ export default function MapScreen() {
       )}
 
       {/* Map */}
-      {Platform.OS === "ios" ? (
-        <AppleMaps.View
-          style={StyleSheet.absoluteFillObject}
-          cameraPosition={{
-            coordinates: {
-              latitude: mapRegion.latitude,
-              longitude: mapRegion.longitude,
-            },
-            zoom: mapRegion.zoom,
-          }}
-          markers={appleMarkers}
-          polylines={applePolylines}
-        />
-      ) : Platform.OS === "android" ? (
-        <GoogleMaps.View
-          style={StyleSheet.absoluteFillObject}
-          cameraPosition={{
-            coordinates: {
-              latitude: mapRegion.latitude,
-              longitude: mapRegion.longitude,
-            },
-            zoom: mapRegion.zoom,
-          }}
-          markers={googleMarkers}
-        />
+      {isNativeMapAvailable() && AppleMaps && GoogleMaps ? (
+        // Native maps available (development build)
+        Platform.OS === "ios" ? (
+          <AppleMaps.View
+            style={StyleSheet.absoluteFillObject}
+            cameraPosition={{
+              coordinates: {
+                latitude: mapRegion.latitude,
+                longitude: mapRegion.longitude,
+              },
+              zoom: mapRegion.zoom,
+            }}
+            markers={appleMarkers}
+            polylines={applePolylines}
+          />
+        ) : Platform.OS === "android" ? (
+          <GoogleMaps.View
+            style={StyleSheet.absoluteFillObject}
+            cameraPosition={{
+              coordinates: {
+                latitude: mapRegion.latitude,
+                longitude: mapRegion.longitude,
+              },
+              zoom: mapRegion.zoom,
+            }}
+            markers={googleMarkers}
+          />
+        ) : (
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-gray-600 dark:text-gray-400">
+              Maps are only available on iOS and Android
+            </Text>
+          </View>
+        )
       ) : (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-600 dark:text-gray-400">
-            Maps are only available on iOS and Android
-          </Text>
-        </View>
+        // Fallback: Show list view when native maps aren't available (Expo Go)
+        <FallbackMap
+          orders={dispatchSeries.flatMap((series) =>
+            series.orders.map((order, index) => ({
+              id: order.id,
+              customerName: order.customerName,
+              address: order.address,
+              coordinates: order.coordinates,
+              driverName: series.driverName,
+              stopNumber: index + 1,
+              totalStops: series.orders.length,
+            }))
+          )}
+          region={mapRegion}
+        />
       )}
     </View>
   );
