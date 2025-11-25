@@ -17,7 +17,7 @@ export function DriverTabs({
   const unassignedCount = orderCounts["unassigned"] || 0;
 
   return (
-    <View className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <View className="bg-background-secondary border-b border-border">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -28,15 +28,15 @@ export function DriverTabs({
           onPress={() => onSelectDriver(null)}
           className={`px-4 py-2 rounded-lg ${
             selectedDriverId === null
-              ? "bg-blue-600"
-              : "bg-gray-100 dark:bg-gray-700"
+              ? "bg-background-tertiary border border-border"
+              : "bg-background-tertiary"
           }`}
         >
           <Text
             className={`font-semibold ${
               selectedDriverId === null
-                ? "text-white"
-                : "text-gray-700 dark:text-gray-300"
+                ? "text-text"
+                : "text-text-secondary"
             }`}
           >
             All ({unassignedCount})
@@ -50,15 +50,15 @@ export function DriverTabs({
             onPress={() => onSelectDriver(driver.id)}
             className={`px-4 py-2 rounded-lg ${
               selectedDriverId === driver.id
-                ? "bg-blue-600"
-                : "bg-gray-100 dark:bg-gray-700"
+                ? "bg-background-tertiary border border-border"
+                : "bg-background-tertiary"
             }`}
           >
             <Text
               className={`font-semibold ${
                 selectedDriverId === driver.id
-                  ? "text-white"
-                  : "text-gray-700 dark:text-gray-300"
+                  ? "text-text"
+                  : "text-text-secondary"
               }`}
             >
               {driver.initials} ({orderCounts[driver.id] || 0})

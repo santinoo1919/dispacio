@@ -26,13 +26,14 @@ export const DRIVERS: Driver[] = [
 ];
 
 // Driver colors for visual consistency across dispatch UI and map
+// Using orange variations as primary accent colors
 export const DRIVER_COLORS = [
-  "#3B82F6", // Blue - Driver 1 (AH)
-  "#10B981", // Green - Driver 2 (MA)
-  "#F59E0B", // Orange - Driver 3 (KI)
+  "#F97316", // accent-500 - Primary orange - Driver 1 (AH)
+  "#FB923C", // accent-400 - Light orange - Driver 2 (MA)
+  "#EA580C", // accent-600 - Dark orange - Driver 3 (KI)
 ];
 
-const UNASSIGNED_COLOR = "#9CA3AF"; // Gray for unassigned orders
+const UNASSIGNED_COLOR = "#71717A"; // zinc-500 for unassigned orders
 
 /**
  * Get color for a driver by their ID

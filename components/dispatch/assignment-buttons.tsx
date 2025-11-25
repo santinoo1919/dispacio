@@ -17,13 +17,13 @@ export function AssignmentButtons({
   if (selectedCount === 0) return null;
 
   return (
-    <View className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 px-4 py-3">
+    <View className="bg-background-secondary border-b border-border px-4 py-3">
       <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+        <Text className="text-sm font-semibold text-text">
           {selectedCount} selected
         </Text>
         <Pressable onPress={onCancel}>
-          <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+          <Text className="text-sm text-text-secondary font-medium">
             Cancel
           </Text>
         </Pressable>
@@ -33,7 +33,7 @@ export function AssignmentButtons({
           <Pressable
             key={driver.id}
             onPress={() => onAssign(driver.id)}
-            className="flex-1 bg-blue-600 px-3 py-2 rounded-lg active:bg-blue-700"
+            className="flex-1 bg-accent-600 px-3 py-2 rounded-lg active:bg-accent-700"
           >
             <Text className="text-white text-center font-semibold text-sm">
               → {driver.initials}

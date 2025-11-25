@@ -7,14 +7,14 @@
  * Gracefully handles Expo Go by showing fallback UI when native maps aren't available
  */
 
-import { View, Text, StyleSheet, Platform } from "react-native";
-import { useMemo } from "react";
-import { useDispatchContext } from "@/context/dispatch-context";
-import { getOrderCoordinates, Coordinates } from "@/lib/utils/geocoding";
-import { Order } from "@/lib/types";
-import { DRIVERS, DRIVER_COLORS, getDriverColor } from "@/lib/data/drivers";
-import { isNativeMapAvailable } from "@/lib/utils/map-availability";
 import { FallbackMap } from "@/components/maps/fallback-map";
+import { useDispatchContext } from "@/context/dispatch-context";
+import { DRIVERS, getDriverColor } from "@/lib/data/drivers";
+import { Order } from "@/lib/types";
+import { Coordinates, getOrderCoordinates } from "@/lib/utils/geocoding";
+import { isNativeMapAvailable } from "@/lib/utils/map-availability";
+import { useMemo } from "react";
+import { Platform, StyleSheet, Text, View } from "react-native";
 
 // Conditionally import native maps (only if available)
 const getMapModule = (moduleName: "AppleMaps" | "GoogleMaps"): any => {
@@ -32,7 +32,8 @@ const getMapModule = (moduleName: "AppleMaps" | "GoogleMaps"): any => {
 const AppleMaps = getMapModule("AppleMaps");
 const GoogleMaps = getMapModule("GoogleMaps");
 
-const UNASSIGNED_COLOR = "#9CA3AF"; // Gray for unassigned orders
+// Use zinc-500 for unassigned orders (from design tokens)
+const UNASSIGNED_COLOR = "#71717A"; // zinc-500
 
 export default function MapScreen() {
   const { orders } = useDispatchContext();
@@ -167,11 +168,11 @@ export default function MapScreen() {
 
   if (orders.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-gray-900 px-6">
-        <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+      <View className="flex-1 items-center justify-center bg-background px-6">
+        <Text className="text-xl font-bold text-text mb-2">
           No Dispatches Yet
         </Text>
-        <Text className="text-base text-gray-600 dark:text-gray-400 text-center">
+        <Text className="text-base text-text-secondary text-center">
           Import CSV orders and assign them to drivers to see routes on the map
         </Text>
       </View>
@@ -179,13 +180,11 @@ export default function MapScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-white dark:bg-gray-800 px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-        <Text className="text-2xl font-bold text-gray-900 dark:text-white">
-          Dispatch Map
-        </Text>
-        <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+      <View className="bg-background-secondary px-4 py-4 border-b border-border">
+        <Text className="text-2xl font-bold text-text">Dispatch Map</Text>
+        <Text className="text-sm text-text-secondary mt-1">
           {dispatchSeries.length} active dispatch
           {dispatchSeries.length !== 1 ? "es" : ""}
         </Text>
@@ -193,10 +192,8 @@ export default function MapScreen() {
 
       {/* Legend */}
       {dispatchSeries.length > 0 && (
-        <View className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <Text className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-            Routes:
-          </Text>
+        <View className="bg-background-secondary px-4 py-3 border-b border-border">
+          <Text className="text-sm font-semibold text-text mb-2">Routes:</Text>
           <View className="flex-row flex-wrap gap-3">
             {dispatchSeries.map((series) => (
               <View
@@ -207,7 +204,7 @@ export default function MapScreen() {
                   className="w-4 h-4 rounded-full mr-2"
                   style={{ backgroundColor: series.color }}
                 />
-                <Text className="text-sm text-gray-700 dark:text-gray-300">
+                <Text className="text-sm text-text-secondary">
                   {series.driverName} ({series.orders.length})
                 </Text>
               </View>
@@ -246,7 +243,7 @@ export default function MapScreen() {
           />
         ) : (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-gray-600 dark:text-gray-400">
+            <Text className="text-text-secondary">
               Maps are only available on iOS and Android
             </Text>
           </View>

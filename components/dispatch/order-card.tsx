@@ -31,22 +31,22 @@ export function OrderCard({
   return (
     <CardWrapper
       {...cardProps}
-      className={`bg-white dark:bg-gray-800 border rounded-xl p-4 shadow-sm ${
+      className={`bg-background-secondary border rounded-xl p-4 shadow-sm ${
         isSelected
-          ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
-          : "border-gray-200 dark:border-gray-700"
+          ? "border-accent-600 bg-accent-600/10"
+          : "border-border"
       }`}
     >
       {/* Header with Order Number */}
       <View className="flex-row items-start mb-2">
-        <View className="bg-blue-500 w-8 h-8 rounded-full items-center justify-center mr-3">
-          <Text className="text-white font-semibold text-sm">{index + 1}</Text>
+        <View className="bg-background-tertiary w-8 h-8 rounded-full items-center justify-center mr-3">
+          <Text className="text-text font-semibold text-sm">{index + 1}</Text>
         </View>
         <View className="flex-1">
-          <Text className="text-base font-semibold text-gray-900 dark:text-white">
+          <Text className="text-base font-semibold text-text">
             {order.customerName}
           </Text>
-          <Text className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <Text className="text-sm text-text-secondary mt-1">
             {order.address}
           </Text>
         </View>
@@ -55,8 +55,8 @@ export function OrderCard({
             <View
               className={`w-6 h-6 rounded border-2 items-center justify-center ${
                 isSelected
-                  ? "bg-blue-600 border-blue-600"
-                  : "border-gray-300 dark:border-gray-600"
+                  ? "bg-accent-600 border-accent-600"
+                  : "border-border bg-background"
               }`}
             >
               {isSelected && (
@@ -73,29 +73,29 @@ export function OrderCard({
               </Text>
             </View>
           ) : (
-            <Text className="text-2xl text-gray-400">⋮⋮</Text>
+            <Text className="text-2xl text-text-tertiary">⋮⋮</Text>
           )}
         </View>
       </View>
 
       {/* Order Details */}
       {order.amount && (
-        <Text className="text-sm font-semibold text-green-600 dark:text-green-400 mt-2">
+        <Text className="text-sm font-semibold text-green-500 mt-2">
           💰 DH {order.amount.toFixed(2)}
         </Text>
       )}
       {order.items && (
-        <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+        <Text className="text-sm text-text-secondary mt-2">
           📦 {order.items}
         </Text>
       )}
       {order.phone && (
-        <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+        <Text className="text-sm text-text-secondary mt-2">
           📞 {order.phone}
         </Text>
       )}
       {order.notes && (
-        <Text className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+        <Text className="text-sm text-text-secondary mt-2">
           📝 {order.notes}
         </Text>
       )}

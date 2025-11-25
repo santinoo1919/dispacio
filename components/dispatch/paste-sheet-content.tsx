@@ -26,10 +26,10 @@ export function PasteSheetContent({
     <View className="flex-1 pb-8">
       {/* Header */}
       <View className="mb-4">
-        <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+        <Text className="text-2xl font-bold text-text mb-1">
           Add CSV Orders
         </Text>
-        <Text className="text-sm text-gray-600 dark:text-gray-400">
+        <Text className="text-sm text-text-secondary">
           Paste or write your order data
         </Text>
       </View>
@@ -37,7 +37,7 @@ export function PasteSheetContent({
       {/* Paste Button */}
       <Pressable
         onPress={onPasteFromClipboard}
-        className="bg-blue-500 px-4 py-3 rounded-lg mb-4 active:bg-blue-600"
+        className="bg-accent-600 px-4 py-3 rounded-lg mb-4 active:bg-accent-700"
       >
         <Text className="text-white font-medium text-center">
           📋 From Clipboard
@@ -50,10 +50,10 @@ export function PasteSheetContent({
         onChangeText={setCsvText}
         placeholder="Paste your CSV data here...
 Or tap 'From Clipboard' above"
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor="#71717A"
         multiline
         numberOfLines={12}
-        className="border border-gray-300 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-base flex-1"
+        className="border border-border rounded-lg p-4 bg-background-secondary text-text text-base flex-1"
         style={{
           textAlignVertical: "top",
           minHeight: 200,

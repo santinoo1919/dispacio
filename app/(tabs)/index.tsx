@@ -1,22 +1,22 @@
-import { useRouter } from "expo-router";
-import { useState, useMemo } from "react";
-import { View, Pressable, Text, TouchableOpacity } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import DraggableFlatList, {
-  ScaleDecorator,
-} from "react-native-draggable-flatlist";
-import { useDispatchContext } from "@/context/dispatch-context";
-import { OrderCard } from "@/components/dispatch/order-card";
-import { DriverTabs } from "@/components/dispatch/driver-tabs";
 import { AssignmentButtons } from "@/components/dispatch/assignment-buttons";
-import { Order } from "@/lib/types";
+import { DriverTabs } from "@/components/dispatch/driver-tabs";
+import { OrderCard } from "@/components/dispatch/order-card";
+import { useDispatchContext } from "@/context/dispatch-context";
 import { DRIVERS, getDriverById, getDriverColor } from "@/lib/data/drivers";
+import { Order } from "@/lib/types";
 import {
   generateWhatsAppMessage,
   shareToWhatsApp,
 } from "@/lib/utils/whatsapp-share";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import { Pressable, Text, TouchableOpacity, View } from "react-native";
+import DraggableFlatList, {
+  ScaleDecorator,
+} from "react-native-draggable-flatlist";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DispatchScreen() {
   const router = useRouter();
@@ -97,35 +97,41 @@ export default function DispatchScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <View className="flex-1 bg-background">
       {/* Header */}
       <View
-        className="bg-white dark:bg-gray-800 px-4 py-6 border-b border-gray-200 dark:border-gray-700"
+        className="bg-background-secondary px-4 py-6 border-b border-border"
         style={{ paddingTop: insets.top + 16 }}
       >
         <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-3xl font-bold text-gray-900 dark:text-white">
-            Dispatch
-          </Text>
+          <Text className="text-3xl font-bold text-text">Dispatch</Text>
           <View className="flex-row gap-2">
-            <Pressable
-              onPress={() => router.push("/paste-csv")}
-              className="bg-blue-600 px-4 py-2 rounded-lg active:bg-blue-700"
-            >
-              <Text className="text-white font-medium text-sm">Import CSV</Text>
-            </Pressable>
-            <Pressable
-              onPress={toggleDispatchMode}
-              className={`px-4 py-2 rounded-lg ${
-                isDispatchMode
-                  ? "bg-green-600 active:bg-green-700"
-                  : "bg-blue-600 active:bg-blue-700"
-              }`}
-            >
-              <Text className="text-white font-medium text-sm">
-                {isDispatchMode ? "Done" : "Dispatch"}
-              </Text>
-            </Pressable>
+            {/* Only show "Import New" when orders exist */}
+            {orders.length > 0 && (
+              <Pressable
+                onPress={() => router.push("/paste-csv")}
+                className="bg-background-secondary px-4 py-2 rounded-lg active:bg-background-tertiary border border-border"
+              >
+                <Text className="text-text-secondary font-medium text-sm">
+                  Import New
+                </Text>
+              </Pressable>
+            )}
+            {/* Only show Dispatch button when orders exist */}
+            {orders.length > 0 && (
+              <Pressable
+                onPress={toggleDispatchMode}
+                className={`px-4 py-2 rounded-lg ${
+                  isDispatchMode
+                    ? "bg-green-600 active:bg-green-700"
+                    : "bg-accent-600 active:bg-accent-700"
+                }`}
+              >
+                <Text className="text-white font-medium text-sm">
+                  {isDispatchMode ? "Done" : "Dispatch"}
+                </Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </View>
@@ -152,19 +158,19 @@ export default function DispatchScreen() {
       {orders.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <View className="items-center mb-8">
-            <View className="bg-blue-100 dark:bg-blue-900/30 w-24 h-24 rounded-full items-center justify-center mb-4">
+            <View className="bg-background-tertiary w-24 h-24 rounded-full items-center justify-center mb-4">
               <Text className="text-5xl">📋</Text>
             </View>
-            <Text className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            <Text className="text-xl font-bold text-text mb-2">
               No Orders Yet
             </Text>
-            <Text className="text-base text-gray-600 dark:text-gray-400 text-center">
+            <Text className="text-base text-text-secondary text-center">
               Add your CSV orders to start creating dispatches
             </Text>
           </View>
           <Pressable
             onPress={() => router.push("/paste-csv")}
-            className="bg-blue-600 px-8 py-4 rounded-xl active:bg-blue-700"
+            className="bg-accent-600 px-8 py-4 rounded-xl active:bg-accent-700"
           >
             <Text className="text-white font-semibold text-lg">
               + Add Orders
@@ -173,7 +179,7 @@ export default function DispatchScreen() {
         </View>
       ) : filteredOrders.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-lg text-gray-600 dark:text-gray-400 text-center">
+          <Text className="text-lg text-text-secondary text-center">
             No orders for this driver
           </Text>
         </View>
