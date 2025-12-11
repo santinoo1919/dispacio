@@ -1,7 +1,6 @@
 /**
  * Fallback Map Component
- * Shows a clean placeholder when native maps aren't available (Expo Go)
- * Displays order locations in a list format instead of a map
+ * Displays order locations in a clean list format when native maps aren't available
  */
 
 import { View, Text, ScrollView } from "react-native";
@@ -43,32 +42,6 @@ export function FallbackMap({ orders, region }: FallbackMapProps) {
 
   return (
     <View className="flex-1 bg-background">
-      {/* Map Placeholder Header */}
-      <View className="bg-background-secondary px-4 py-4 border-b border-border">
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-lg font-semibold text-text">
-              Map View
-            </Text>
-            <Text className="text-sm text-text-secondary mt-1">
-              {orders.length} location{orders.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-          <View className="bg-background-tertiary px-3 py-1.5 rounded-lg">
-            <Text className="text-xs font-medium text-text-secondary">
-              Expo Go Mode
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Info Banner */}
-      <View className="bg-background-tertiary px-4 py-3 border-b border-border">
-        <Text className="text-sm text-text-secondary">
-          💡 Native maps require a development build. Showing locations list instead.
-        </Text>
-      </View>
-
       {/* Locations List */}
       <ScrollView className="flex-1">
         <View>

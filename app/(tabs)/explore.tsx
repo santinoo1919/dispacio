@@ -8,11 +8,12 @@
  */
 
 import { FallbackMap } from "@/components/maps/fallback-map";
-import { useDispatchContext } from "@/context/dispatch-context";
+import { ScreenHeader } from "@/components/ui/screen-header";
 import { DRIVERS, getDriverColor } from "@/lib/data/drivers";
 import { Order } from "@/lib/types";
 import { Coordinates, getOrderCoordinates } from "@/lib/utils/geocoding";
 import { isNativeMapAvailable } from "@/lib/utils/map-availability";
+import { useDispatchStore } from "@/store/dispatch-store";
 import { useMemo } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
@@ -36,17 +37,17 @@ const GoogleMaps = getMapModule("GoogleMaps");
 const UNASSIGNED_COLOR = "#71717A"; // zinc-500
 
 export default function MapScreen() {
-  const { orders } = useDispatchContext();
+  const { orders } = useDispatchStore();
 
   // Group orders by driver and get coordinates
   // SIMPLIFIED: Uses coordinates directly from CSV if available
   const dispatchSeries = useMemo(() => {
-    const series: Array<{
+    const series: {
       driverId: string | null;
       driverName: string;
       color: string;
-      orders: Array<Order & { coordinates: Coordinates }>;
-    }> = [];
+      orders: (Order & { coordinates: Coordinates })[];
+    }[] = [];
 
     // Process assigned orders by driver
     DRIVERS.forEach((driver, index) => {
@@ -182,13 +183,7 @@ export default function MapScreen() {
   return (
     <View className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-background-secondary px-4 py-4 border-b border-border">
-        <Text className="text-2xl font-bold text-text">Dispatch Map</Text>
-        <Text className="text-sm text-text-secondary mt-1">
-          {dispatchSeries.length} active dispatch
-          {dispatchSeries.length !== 1 ? "es" : ""}
-        </Text>
-      </View>
+      <ScreenHeader title="Map" />
 
       {/* Legend */}
       {dispatchSeries.length > 0 && (

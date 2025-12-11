@@ -4,9 +4,9 @@
  * Includes both the utility functions and visual configuration
  */
 
-import Toast from "react-native-toast-message";
-import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Text, View } from "react-native";
+import Toast from "react-native-toast-message";
 
 // Visual configuration matching app design tokens
 export const toastConfig = {
@@ -81,4 +81,3 @@ export const showToast = {
     });
   },
 };
-

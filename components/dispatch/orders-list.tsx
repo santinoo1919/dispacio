@@ -89,14 +89,14 @@ export function OrdersList({
         }}
         ListFooterComponent={
           selectedDriverId && !isDispatchMode && orders.length > 0 ? (
-            <View className="px-4 py-4">
+            <View className="px-4 py-8">
               <Pressable
                 onPress={onShare}
-                className="bg-status-success-background rounded-lg active:bg-status-success-border flex-row items-center justify-center gap-2 py-3"
+                className="bg-background-secondary rounded-lg active:bg-green-700 flex-row items-center justify-center gap-2 py-3"
               >
                 <Ionicons name="logo-whatsapp" size={20} color="#fff" />
                 <Text className="text-white text-center font-semibold">
-                  Share
+                  Share Dispatch
                 </Text>
               </Pressable>
             </View>

@@ -3,7 +3,7 @@
  * Native iOS modal for CSV input
  */
 
-import { useDispatchContext } from "@/context/dispatch-context";
+import { useDispatchStore } from "@/store/dispatch-store";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
@@ -16,7 +16,7 @@ export default function PasteCSVScreen() {
     pasteFromClipboard,
     parseCSV,
     clear,
-  } = useDispatchContext();
+  } = useDispatchStore();
 
   const handleParseAndDismiss = () => {
     const result = parseCSV();
