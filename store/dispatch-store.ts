@@ -3,6 +3,12 @@
  * Zustand store with smart storage persistence (MMKV with AsyncStorage fallback)
  * - Uses MMKV in dev client/production for best performance
  * - Falls back to AsyncStorage in Expo Go for compatibility
+ *
+ * Only stores long-living, shared state across screens:
+ * - csvText: Raw CSV input (persisted)
+ * - orders: Parsed orders (persisted)
+ * - zones: Clustered zones (persisted)
+ * - isLoading: Transient loading state (not persisted)
  */
 
 import { ZoneClusterer } from "@/lib/clustering/zone-clusterer";
@@ -22,8 +28,6 @@ interface DispatchState {
   orders: Order[];
   zones: Zone[];
   isLoading: boolean;
-  isDispatchMode: boolean;
-  selectedOrderIds: Set<string>;
 
   // Actions
   setCsvText: (text: string) => void;
@@ -33,15 +37,7 @@ interface DispatchState {
   clusterOrders: () => void;
   assignDriverToZone: (zoneId: string, driverId: string) => void;
   clear: () => void;
-  toggleDispatchMode: () => void;
-  toggleOrderSelection: (orderId: string) => void;
-  assignSelectedOrders: (driverId: string) => void;
-  clearSelection: () => void;
 }
-
-// Helper to convert Set to array for persistence
-const setToArray = (set: Set<string>): string[] => Array.from(set);
-const arrayToSet = (arr: string[]): Set<string> => new Set(arr);
 
 export const useDispatchStore = create<DispatchState>()(
   persist(
@@ -51,8 +47,6 @@ export const useDispatchStore = create<DispatchState>()(
       orders: [],
       zones: [],
       isLoading: false,
-      isDispatchMode: false,
-      selectedOrderIds: new Set<string>(),
 
       // Actions
       setCsvText: (text: string) => set({ csvText: text }),
@@ -175,70 +169,18 @@ export const useDispatchStore = create<DispatchState>()(
           csvText: "",
           orders: [],
           zones: [],
-          selectedOrderIds: new Set(),
-          isDispatchMode: false,
         });
-      },
-
-      toggleDispatchMode: () => {
-        const { isDispatchMode } = get();
-        set({ isDispatchMode: !isDispatchMode });
-        if (isDispatchMode) {
-          set({ selectedOrderIds: new Set() });
-        }
-      },
-
-      toggleOrderSelection: (orderId: string) => {
-        const { selectedOrderIds } = get();
-        const next = new Set(selectedOrderIds);
-        if (next.has(orderId)) {
-          next.delete(orderId);
-        } else {
-          next.add(orderId);
-        }
-        set({ selectedOrderIds: next });
-      },
-
-      assignSelectedOrders: (driverId: string) => {
-        const { orders, selectedOrderIds } = get();
-        const updatedOrders = orders.map((order) =>
-          selectedOrderIds.has(order.id) ? { ...order, driverId } : order
-        );
-        set({
-          orders: updatedOrders,
-          selectedOrderIds: new Set(),
-          isDispatchMode: false,
-        });
-      },
-
-      clearSelection: () => {
-        set({ selectedOrderIds: new Set() });
       },
     }),
     {
       name: "dispatch-storage",
       storage: createJSONStorage(() => getStorage()),
-      // Only persist these fields (exclude isLoading as it's transient)
+      // Only persist long-living, shared state
       partialize: (state) => ({
         csvText: state.csvText,
         orders: state.orders,
         zones: state.zones,
-        isDispatchMode: state.isDispatchMode,
-        // Convert Set to array for persistence
-        selectedOrderIdsArray: setToArray(state.selectedOrderIds),
       }),
-      // Restore Set from array on hydration
-      merge: (persistedState, currentState) => {
-        const persisted = persistedState as any;
-        return {
-          ...currentState,
-          ...persisted,
-          // Convert array back to Set
-          selectedOrderIds: persisted.selectedOrderIdsArray
-            ? arrayToSet(persisted.selectedOrderIdsArray)
-            : currentState.selectedOrderIds,
-        };
-      },
     }
   )
 );
