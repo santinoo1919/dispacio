@@ -22,46 +22,55 @@ try {
   });
   isMMKVAvailable = true;
   console.log("[Storage] MMKV initialized successfully");
-} catch (error) {
+} catch {
   // MMKV not available (e.g., in Expo Go)
   // Will fall back to AsyncStorage
   console.log("[Storage] MMKV not available, using AsyncStorage fallback");
 }
 
 /**
+ * Storage adapter interface - all methods are async for consistency
+ * This ensures type safety and compatibility with Zustand's persist middleware
+ */
+interface StorageAdapter {
+  setItem: (name: string, value: string) => Promise<void>;
+  getItem: (name: string) => Promise<string | null>;
+  removeItem: (name: string) => Promise<void>;
+}
+
+/**
  * Storage adapter that implements Zustand's storage interface
  * Automatically uses MMKV if available, otherwise AsyncStorage
  *
- * Note: Zustand's createJSONStorage can handle both sync (MMKV) and async (AsyncStorage) storage
+ * CRITICAL: All methods return Promises for consistency, even though MMKV is synchronous.
+ * This is the standard pattern used by React Native, Expo, and Zustand teams because:
+ * 1. Type safety - TypeScript can properly type a consistent async interface
+ * 2. Zustand compatibility - createJSONStorage expects uniform async methods
+ * 3. Error handling - Consistent Promise-based error propagation
+ * 4. Future-proofing - Easy to swap implementations without breaking code
  */
-export const getStorage = () => {
+export const getStorage = (): StorageAdapter => {
   if (isMMKVAvailable && mmkvStorage) {
-    // MMKV adapter (synchronous, but Zustand handles it)
+    // MMKV: wrap sync operations in async functions for consistency
     return {
-      setItem: (name: string, value: string) => {
+      setItem: async (name: string, value: string) => {
         mmkvStorage.set(name, value);
       },
-      getItem: (name: string) => {
+      getItem: async (name: string) => {
         return mmkvStorage.getString(name) ?? null;
       },
-      removeItem: (name: string) => {
+      removeItem: async (name: string) => {
         mmkvStorage.delete(name);
       },
     };
-  } else {
-    // AsyncStorage adapter (async)
-    return {
-      setItem: async (name: string, value: string) => {
-        await AsyncStorage.setItem(name, value);
-      },
-      getItem: async (name: string) => {
-        return await AsyncStorage.getItem(name);
-      },
-      removeItem: async (name: string) => {
-        await AsyncStorage.removeItem(name);
-      },
-    };
   }
+
+  // AsyncStorage: already async, use directly
+  return {
+    setItem: (name: string, value: string) => AsyncStorage.setItem(name, value),
+    getItem: (name: string) => AsyncStorage.getItem(name),
+    removeItem: (name: string) => AsyncStorage.removeItem(name),
+  };
 };
 
 /**

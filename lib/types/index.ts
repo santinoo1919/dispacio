@@ -25,6 +25,17 @@ export interface Driver {
   initials: string;
 }
 
+export interface Zone {
+  id: string;
+  center: {
+    lat: number;
+    lng: number;
+  };
+  orders: Order[];
+  orderCount: number;
+  assignedDriverId?: string; // Driver assigned to all orders in this zone
+}
+
 export interface Dispatch {
   id: string;
   driverName: string;

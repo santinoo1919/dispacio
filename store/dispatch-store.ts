@@ -5,18 +5,22 @@
  * - Falls back to AsyncStorage in Expo Go for compatibility
  */
 
+import { ZoneClusterer } from "@/lib/clustering/zone-clusterer";
 import { CSVParser } from "@/lib/csv/parser";
 import { SAMPLE_FMCG_CSV } from "@/lib/data/sample-orders";
 import { getStorage } from "@/lib/storage/storage";
-import { CSVParseResult, Order } from "@/lib/types";
+import { CSVParseResult, Order, Zone } from "@/lib/types";
 import { showToast } from "@/lib/utils/toast";
 import * as Clipboard from "expo-clipboard";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+const zoneClusterer = new ZoneClusterer();
+
 interface DispatchState {
   csvText: string;
   orders: Order[];
+  zones: Zone[];
   isLoading: boolean;
   isDispatchMode: boolean;
   selectedOrderIds: Set<string>;
@@ -26,6 +30,8 @@ interface DispatchState {
   setOrders: (orders: Order[]) => void;
   pasteFromClipboard: () => void;
   parseCSV: () => CSVParseResult | null;
+  clusterOrders: () => void;
+  assignDriverToZone: (zoneId: string, driverId: string) => void;
   clear: () => void;
   toggleDispatchMode: () => void;
   toggleOrderSelection: (orderId: string) => void;
@@ -43,13 +49,28 @@ export const useDispatchStore = create<DispatchState>()(
       // Initial state
       csvText: SAMPLE_FMCG_CSV,
       orders: [],
+      zones: [],
       isLoading: false,
       isDispatchMode: false,
       selectedOrderIds: new Set<string>(),
 
       // Actions
       setCsvText: (text: string) => set({ csvText: text }),
-      setOrders: (orders: Order[]) => set({ orders }),
+      setOrders: (orders: Order[]) => {
+        set({ orders });
+        const newZones = zoneClusterer.clusterOrders(orders);
+        // Preserve zone driver assignments if all orders in zone have same driver
+        const zonesWithDrivers = newZones.map((zone) => {
+          const driverIds = new Set(
+            zone.orders.map((o) => o.driverId).filter(Boolean)
+          );
+          if (driverIds.size === 1) {
+            return { ...zone, assignedDriverId: Array.from(driverIds)[0] };
+          }
+          return zone;
+        });
+        set({ zones: zonesWithDrivers });
+      },
 
       pasteFromClipboard: async () => {
         try {
@@ -83,6 +104,18 @@ export const useDispatchStore = create<DispatchState>()(
 
         if (result.success) {
           set({ orders: result.orders });
+          const newZones = zoneClusterer.clusterOrders(result.orders);
+          // Preserve zone driver assignments if all orders in zone have same driver
+          const zonesWithDrivers = newZones.map((zone) => {
+            const driverIds = new Set(
+              zone.orders.map((o) => o.driverId).filter(Boolean)
+            );
+            if (driverIds.size === 1) {
+              return { ...zone, assignedDriverId: Array.from(driverIds)[0] };
+            }
+            return zone;
+          });
+          set({ zones: zonesWithDrivers });
           showToast.success(
             "Success!",
             `Parsed ${
@@ -98,10 +131,50 @@ export const useDispatchStore = create<DispatchState>()(
         return result;
       },
 
+      clusterOrders: () => {
+        const { orders } = get();
+        const newZones = zoneClusterer.clusterOrders(orders);
+        // Preserve zone driver assignments if all orders in zone have same driver
+        const zonesWithDrivers = newZones.map((zone) => {
+          const driverIds = new Set(
+            zone.orders.map((o) => o.driverId).filter(Boolean)
+          );
+          if (driverIds.size === 1) {
+            return { ...zone, assignedDriverId: Array.from(driverIds)[0] };
+          }
+          return zone;
+        });
+        set({ zones: zonesWithDrivers });
+      },
+
+      assignDriverToZone: (zoneId: string, driverId: string) => {
+        const { orders, zones } = get();
+
+        // Find the zone
+        const zone = zones.find((z) => z.id === zoneId);
+        if (!zone) return;
+
+        // Get all order IDs in this zone
+        const zoneOrderIds = new Set(zone.orders.map((o) => o.id));
+
+        // Update all orders in the zone with the driver ID
+        const updatedOrders = orders.map((order) =>
+          zoneOrderIds.has(order.id) ? { ...order, driverId } : order
+        );
+
+        // Update the zone with assigned driver
+        const updatedZones = zones.map((z) =>
+          z.id === zoneId ? { ...z, assignedDriverId: driverId } : z
+        );
+
+        set({ orders: updatedOrders, zones: updatedZones });
+      },
+
       clear: () => {
         set({
           csvText: "",
           orders: [],
+          zones: [],
           selectedOrderIds: new Set(),
           isDispatchMode: false,
         });
@@ -149,6 +222,7 @@ export const useDispatchStore = create<DispatchState>()(
       partialize: (state) => ({
         csvText: state.csvText,
         orders: state.orders,
+        zones: state.zones,
         isDispatchMode: state.isDispatchMode,
         // Convert Set to array for persistence
         selectedOrderIdsArray: setToArray(state.selectedOrderIds),

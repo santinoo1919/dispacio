@@ -33,6 +33,10 @@ export default function RootLayout() {
               name="paste-csv"
               options={{ presentation: "modal", headerShown: false }}
             />
+            <Stack.Screen
+              name="zone-detail"
+              options={{ presentation: "modal", headerShown: false }}
+            />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>

@@ -5,7 +5,7 @@
  */
 
 import { Card } from "@/components/ui/card";
-import { Order } from "@/lib/types";
+import { Order, Zone } from "@/lib/types";
 import { Coordinates } from "@/lib/utils/geocoding";
 import { Ionicons } from "@expo/vector-icons";
 import { Linking, Pressable, Text, View } from "react-native";
@@ -120,9 +120,9 @@ function StopBadge({
 }
 
 interface OrderCardProps {
-  order: Order;
+  order?: Order;
   index: number;
-  variant?: "default" | "compact" | "location";
+  variant?: "default" | "compact" | "location" | "zone";
   isDispatchMode?: boolean;
   isSelected?: boolean;
   driverInitials?: string;
@@ -134,6 +134,9 @@ interface OrderCardProps {
   showCoordinates?: boolean;
   coordinates?: Coordinates;
   driverName?: string;
+  // Zone variant props
+  zone?: Zone;
+  onPress?: () => void;
 }
 
 export function OrderCard({
@@ -150,7 +153,66 @@ export function OrderCard({
   showCoordinates = false,
   coordinates,
   driverName,
+  zone,
+  onPress,
 }: OrderCardProps) {
+  // Zone variant handling
+  if (variant === "zone" && zone) {
+    const zoneDriver = zone.assignedDriverId
+      ? driverInitials
+        ? { initials: driverInitials, color: driverColor }
+        : null
+      : null;
+
+    // Extract zone number from zone.id (e.g., "Zone 1" -> 1, "Unassigned Zone" -> 0)
+    const zoneNumberMatch = zone.id.match(/\d+/);
+    const zoneNumber = zoneNumberMatch
+      ? parseInt(zoneNumberMatch[0], 10)
+      : index + 1;
+
+    return (
+      <Pressable onPress={onPress}>
+        <Card variant={variant} isSelected={false}>
+          <View className="flex-row items-start mb-2">
+            <NumberBadge number={zoneNumber} />
+            <View className="flex-1">
+              <View className="flex-1">
+                <Text className="text-lg font-semibold text-text">
+                  {zone.id}
+                </Text>
+                <View className="flex-row items-center mt-1">
+                  <Ionicons name="cube-outline" size={18} color="#A1A1AA" />
+                  <Text className="text-base text-text-secondary ml-1">
+                    {zone.orderCount}{" "}
+                    {zone.orderCount === 1 ? "order" : "orders"}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <View className="ml-2 flex-row items-center gap-2">
+              {zoneDriver ? (
+                <View
+                  className="w-8 h-8 rounded-full items-center justify-center"
+                  style={{ backgroundColor: zoneDriver.color || "#71717A" }}
+                >
+                  <Text className="text-white font-semibold text-sm">
+                    {zoneDriver.initials}
+                  </Text>
+                </View>
+              ) : (
+                <Ionicons name="person-outline" size={22} color="#71717A" />
+              )}
+              <Ionicons name="chevron-forward" size={24} color="#71717A" />
+            </View>
+          </View>
+        </Card>
+      </Pressable>
+    );
+  }
+
+  // Original order card logic
+  if (!order) return null;
+
   const CardWrapper = isDispatchMode ? Pressable : View;
   const cardProps = isDispatchMode ? { onPress: onToggleSelect } : {};
 

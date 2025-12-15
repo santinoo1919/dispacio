@@ -9,7 +9,7 @@ import { View, ViewProps } from "react-native";
 
 interface CardProps extends ViewProps {
   children: ReactNode;
-  variant?: "default" | "compact" | "location";
+  variant?: "default" | "compact" | "location" | "zone";
   isSelected?: boolean;
   className?: string;
 }
@@ -27,6 +27,7 @@ export function Card({
     default: "p-4",
     compact: "p-3",
     location: "p-4",
+    zone: "p-4",
   };
 
   const selectedClasses = isSelected ? "bg-accent-600/10" : "";
