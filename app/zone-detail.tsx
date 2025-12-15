@@ -6,6 +6,7 @@
 import { OrderCard } from "@/components/dispatch/order-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { DRIVERS, getDriverById, getDriverColor } from "@/lib/data/drivers";
+import { calculateOrderDistance } from "@/lib/utils/distance";
 import { showToast } from "@/lib/utils/toast";
 import {
   generateWhatsAppMessage,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/utils/whatsapp-share";
 import { useDispatchStore } from "@/store/dispatch-store";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useMemo } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 export default function ZoneDetailScreen() {
@@ -23,6 +25,23 @@ export default function ZoneDetailScreen() {
   const zone = zones.find((z) => z.id === zoneId);
   const zoneOrders = zone?.orders ?? [];
   const assignedDriverId = zone?.assignedDriverId;
+
+  // Calculate distances between consecutive orders
+  const orderDistances = useMemo(() => {
+    const distances: (number | null)[] = [];
+    for (let i = 0; i < zoneOrders.length; i++) {
+      if (i < zoneOrders.length - 1) {
+        const distance = calculateOrderDistance(
+          zoneOrders[i],
+          zoneOrders[i + 1]
+        );
+        distances.push(distance);
+      } else {
+        distances.push(null); // Last order has no next order
+      }
+    }
+    return distances;
+  }, [zoneOrders]);
 
   const handleDriverSelect = (driverId: string) => {
     if (!zoneId) return;
@@ -153,6 +172,7 @@ export default function ZoneDetailScreen() {
                   index={index}
                   driverInitials={driver?.initials}
                   driverColor={getDriverColor(order.driverId)}
+                  distanceToNext={orderDistances[index]}
                 />
               </View>
             );

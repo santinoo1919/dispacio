@@ -41,7 +41,7 @@ export class ZoneClusterer {
     minPoints?: number;
   }) {
     this.clusterer = new Supercluster<ClusterProperties>({
-      radius: options?.radius ?? 60,
+      radius: options?.radius ?? 120, // Larger radius = fewer, larger zones
       maxZoom: options?.maxZoom ?? 14,
       minZoom: 0,
       minPoints: options?.minPoints ?? 2,
@@ -93,7 +93,7 @@ export class ZoneClusterer {
     this.clusterer.load(features);
 
     const bbox = this.computeBoundingBox(withCoords);
-    const zoomLevel = 10; // reasonable default for city-scale clustering
+    const zoomLevel = 8; // Lower zoom = larger zones (city-scale, fewer zones)
     const clusters = this.clusterer.getClusters(
       bbox,
       zoomLevel

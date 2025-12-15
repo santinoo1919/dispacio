@@ -6,6 +6,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Order, Zone } from "@/lib/types";
+import { formatDistance } from "@/lib/utils/distance";
 import { Coordinates } from "@/lib/utils/geocoding";
 import { Ionicons } from "@expo/vector-icons";
 import { Linking, Pressable, Text, View } from "react-native";
@@ -55,10 +56,12 @@ function OrderDetails({
   order,
   showCoordinates = false,
   coordinates,
+  distanceToNext,
 }: {
   order: Order;
   showCoordinates?: boolean;
   coordinates?: Coordinates;
+  distanceToNext?: number | null;
 }) {
   const itemCount = order.items ? parseItemCount(order.items) : null;
 
@@ -77,6 +80,14 @@ function OrderDetails({
           <Ionicons name="cube-outline" size={18} color="#A1A1AA" />
           <Text className="text-base text-text-secondary ml-1">
             {itemCount}
+          </Text>
+        </View>
+      )}
+      {distanceToNext != null && (
+        <View className="flex-row items-center mt-2">
+          <Ionicons name="navigate-outline" size={18} color="#A1A1AA" />
+          <Text className="text-base text-text-secondary ml-1">
+            {formatDistance(distanceToNext)} to next
           </Text>
         </View>
       )}
@@ -137,6 +148,8 @@ interface OrderCardProps {
   // Zone variant props
   zone?: Zone;
   onPress?: () => void;
+  // Distance props
+  distanceToNext?: number | null; // Distance to next order in sequence (km)
 }
 
 export function OrderCard({
@@ -155,6 +168,7 @@ export function OrderCard({
   driverName,
   zone,
   onPress,
+  distanceToNext,
 }: OrderCardProps) {
   // Zone variant handling
   if (variant === "zone" && zone) {
@@ -277,6 +291,7 @@ export function OrderCard({
           order={order}
           showCoordinates={showCoordinates}
           coordinates={coordinates}
+          distanceToNext={distanceToNext}
         />
 
         {/* Driver Name (for location variant) */}
