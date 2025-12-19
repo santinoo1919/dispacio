@@ -14,12 +14,12 @@ export default function PasteCSVScreen() {
     setCsvText,
     isLoading,
     pasteFromClipboard,
-    parseCSV,
+    parseAndUploadCSV,
     clear,
   } = useDispatchStore();
 
-  const handleParseAndDismiss = () => {
-    const result = parseCSV();
+  const handleParseAndDismiss = async () => {
+    const result = await parseAndUploadCSV();
     if (result?.success) {
       router.back();
     }

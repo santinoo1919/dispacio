@@ -3,11 +3,17 @@ import { ZoneCard } from "@/components/dispatch/zone-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { useDispatchStore } from "@/store/dispatch-store";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { FlatList, Pressable, Text, View } from "react-native";
 
 export default function DispatchScreen() {
-  const { orders, zones } = useDispatchStore();
+  const { orders, zones, fetchOrdersFromAPI } = useDispatchStore();
   const router = useRouter();
+
+  // Fetch orders from API on mount
+  useEffect(() => {
+    fetchOrdersFromAPI();
+  }, []);
 
   const handleZonePress = (zoneId: string) => {
     router.push(`/zone-detail?zoneId=${encodeURIComponent(zoneId)}`);

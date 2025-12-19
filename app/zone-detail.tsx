@@ -13,14 +13,26 @@ import {
   shareToWhatsApp,
 } from "@/lib/utils/whatsapp-share";
 import { useDispatchStore } from "@/store/dispatch-store";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 export default function ZoneDetailScreen() {
   const router = useRouter();
   const { zoneId } = useLocalSearchParams<{ zoneId: string }>();
-  const { zones, assignDriverToZone } = useDispatchStore();
+  const { zones, assignDriverToZone, optimizeRoute, isOptimizing } =
+    useDispatchStore();
+  const [optimizedResult, setOptimizedResult] = useState<{
+    totalDistance: number;
+    totalDuration: number;
+  } | null>(null);
 
   const zone = zones.find((z) => z.id === zoneId);
   const zoneOrders = zone?.orders ?? [];
@@ -43,10 +55,30 @@ export default function ZoneDetailScreen() {
     return distances;
   }, [zoneOrders]);
 
-  const handleDriverSelect = (driverId: string) => {
+  const handleDriverSelect = async (driverId: string) => {
     if (!zoneId) return;
-    assignDriverToZone(zoneId, driverId);
+    await assignDriverToZone(zoneId, driverId);
     showToast.success("Driver Assigned", "Driver assigned to zone");
+    setOptimizedResult(null); // Reset optimization result when driver changes
+  };
+
+  const handleOptimizeRoute = async () => {
+    if (!assignedDriverId) {
+      showToast.error("No Driver", "Please select a driver first");
+      return;
+    }
+
+    const orderIds = zoneOrders
+      .map((o) => o.serverId || o.id)
+      .filter(Boolean) as string[];
+    const result = await optimizeRoute(assignedDriverId, orderIds);
+
+    if (result) {
+      setOptimizedResult({
+        totalDistance: result.totalDistance,
+        totalDuration: result.totalDuration,
+      });
+    }
   };
 
   const handleShare = async () => {
@@ -157,6 +189,59 @@ export default function ZoneDetailScreen() {
             })}
           </View>
         </View>
+
+        {/* Optimize Route Section */}
+        {assignedDriverId && (
+          <View className="mb-6">
+            <Pressable
+              onPress={handleOptimizeRoute}
+              disabled={isOptimizing || zoneOrders.length === 0}
+              className={`bg-accent-600 rounded-lg py-4 px-4 flex-row items-center justify-center ${
+                isOptimizing || zoneOrders.length === 0
+                  ? "opacity-50"
+                  : "active:bg-accent-700"
+              }`}
+            >
+              {isOptimizing ? (
+                <>
+                  <ActivityIndicator color="#fff" size="small" />
+                  <Text className="text-white font-semibold text-base ml-2">
+                    Optimizing...
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="navigate" size={20} color="#fff" />
+                  <Text className="text-white font-semibold text-base ml-2">
+                    Optimize Route
+                  </Text>
+                </>
+              )}
+            </Pressable>
+
+            {optimizedResult && (
+              <View className="mt-3 bg-background-secondary p-3 rounded-lg">
+                <Text className="text-text font-semibold mb-1">
+                  Route Optimized
+                </Text>
+                <View className="flex-row items-center mt-1">
+                  <Ionicons name="navigate-outline" size={16} color="#A1A1AA" />
+                  <Text className="text-text-secondary text-sm ml-1">
+                    Total Distance: {optimizedResult.totalDistance.toFixed(1)}{" "}
+                    km
+                  </Text>
+                </View>
+                <View className="flex-row items-center mt-1">
+                  <Ionicons name="time-outline" size={16} color="#A1A1AA" />
+                  <Text className="text-text-secondary text-sm ml-1">
+                    Estimated Duration:{" "}
+                    {Math.round(optimizedResult.totalDuration / 60)} min
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Orders List */}
         <View className="mb-6">
