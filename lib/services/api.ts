@@ -189,3 +189,4 @@ export async function healthCheck(): Promise<{
 }> {
   return apiRequest("/health");
 }
+

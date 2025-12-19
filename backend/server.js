@@ -26,10 +26,63 @@ const fastify = Fastify({
 
 // CORS configuration
 import cors from "@fastify/cors";
+const isDevelopment = process.env.NODE_ENV !== "production";
 await fastify.register(cors, {
-  origin: true, // Allow all origins in development
+  origin: isDevelopment
+    ? true // Allow all origins in development
+    : process.env.ALLOWED_ORIGINS?.split(",") || false, // Restrict in production
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 });
+
+// Swagger/OpenAPI documentation
+import swagger from "@fastify/swagger";
+import swaggerUI from "@fastify/swagger-ui";
+import { commonSchemas, publicSchemas } from "./schemas/index.js";
+
+await fastify.register(swagger, {
+  openapi: {
+    info: {
+      title: "Smart Dispatch API",
+      description: "API for smart dispatch with VROOM route optimization",
+      version: "1.0.0",
+    },
+    servers: [
+      {
+        url: isDevelopment
+          ? `http://localhost:${process.env.PORT || 3000}`
+          : process.env.API_URL || `https://api.yourapp.com`,
+        description: isDevelopment ? "Development server" : "Production server",
+      },
+    ],
+    tags: [
+      { name: "orders", description: "Order management endpoints" },
+      { name: "routes", description: "Route optimization endpoints" },
+      { name: "health", description: "Health check endpoints" },
+    ],
+    components: {
+      schemas: publicSchemas, // Use public schemas (hides sensitive fields)
+    },
+  },
+});
+
+// Only register Swagger UI in development (security: don't expose API docs in production)
+if (isDevelopment) {
+  await fastify.register(swaggerUI, {
+    routePrefix: "/docs", // Access docs at http://localhost:3000/docs
+    uiConfig: {
+      docExpansion: "list", // or "full" to expand all
+      deepLinking: true,
+      persistAuthorization: true,
+    },
+    staticCSP: true,
+    transformStaticCSP: (header) => header,
+  });
+  fastify.log.info("Swagger UI available at /docs (development only)");
+} else {
+  fastify.log.info("Swagger UI disabled in production");
+}
 
 // Register database
 await registerDatabase(fastify);
@@ -48,23 +101,37 @@ await fastify.register(ordersRoutes, { prefix: "/api/orders" });
 await fastify.register(optimizeRoutes, { prefix: "/api/routes" });
 
 // Health check endpoint
-fastify.get("/health", async (request, reply) => {
-  try {
-    const result = await fastify.pg.query("SELECT NOW()");
-    return {
-      status: "ok",
-      database: "connected",
-      timestamp: result.rows[0].now,
-    };
-  } catch (error) {
-    reply.code(503);
-    return {
-      status: "error",
-      database: "disconnected",
-      error: error.message,
-    };
+fastify.get(
+  "/health",
+  {
+    schema: {
+      tags: ["health"],
+      summary: "Health check endpoint",
+      description: "Check API and database connectivity",
+      response: {
+        200: commonSchemas.HealthResponse,
+        503: commonSchemas.HealthResponse,
+      },
+    },
+  },
+  async (request, reply) => {
+    try {
+      const result = await fastify.pg.query("SELECT NOW()");
+      return {
+        status: "ok",
+        database: "connected",
+        timestamp: result.rows[0].now,
+      };
+    } catch (error) {
+      reply.code(503);
+      return {
+        status: "error",
+        database: "disconnected",
+        error: error.message,
+      };
+    }
   }
-});
+);
 
 // Start server
 const start = async () => {

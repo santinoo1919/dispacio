@@ -191,3 +191,4 @@ sudo systemctl status postgresql  # Linux
 - PostgreSQL docs: https://www.postgresql.org/docs/
 - Interactive tutorial: https://www.postgresqltutorial.com/
 - SQL basics: https://www.w3schools.com/sql/
+

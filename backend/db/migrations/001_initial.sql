@@ -61,3 +61,4 @@ CREATE TABLE IF NOT EXISTS orders (
 CREATE INDEX IF NOT EXISTS idx_orders_driver_id ON orders(driver_id);
 CREATE INDEX IF NOT EXISTS idx_orders_route_rank ON orders(driver_id, route_rank);
 CREATE INDEX IF NOT EXISTS idx_vehicles_driver_id ON vehicles(driver_id);
+
