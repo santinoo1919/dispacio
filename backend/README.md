@@ -1,6 +1,6 @@
 # Dispacio Backend
 
-Fastify backend with PostgreSQL and VROOM integration for smart dispatch route optimization.
+Fastify backend with PostgreSQL and OR-Tools VRP solver for smart dispatch route optimization.
 
 ## Setup
 
@@ -78,10 +78,9 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dispacio
 DATABASE_URL=postgresql://dispacio_user:your_password@localhost:5432/dispacio
 ```
 
-### 3. VROOM (Optional - Skip for now)
+### 3. Route Optimization
 
-VROOM setup is deferred. The optimize endpoint will return an error if VROOM is not configured.
-You can set `VROOM_URL` later when ready.
+Route optimization uses OR-Tools (node_or_tools) which runs directly in Node.js - no Docker or external services needed!
 
 ### 4. Environment Variables
 
@@ -89,7 +88,6 @@ Create `.env` file (optional):
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/dispacio
-# VROOM_URL=http://localhost:3000  # Optional - skip for now
 PORT=3000
 LOG_LEVEL=info
 RUN_MIGRATIONS=true

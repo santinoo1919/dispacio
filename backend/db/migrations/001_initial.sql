@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS orders (
     items TEXT,
     priority VARCHAR(20) DEFAULT 'normal',
     
-    -- Package capacity (critical for VROOM)
+    -- Package capacity (for route optimization constraints)
     package_length DECIMAL(8, 2),
     package_width DECIMAL(8, 2),
     package_height DECIMAL(8, 2),

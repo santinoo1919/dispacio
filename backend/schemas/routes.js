@@ -13,9 +13,9 @@ export const OptimizeRouteBodySchema = z.object({
 // Optimized order in route response
 export const OptimizedOrderSchema = z.object({
   orderId: z.string().uuid(),
+  orderNumber: z.string(),
   rank: z.number().int(),
-  distance: z.number().optional(),
-  duration: z.number().optional(),
+  distanceFromPrev: z.number(), // Distance from previous stop in km
 });
 
 // Response schema for route optimization

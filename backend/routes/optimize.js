@@ -1,16 +1,15 @@
 /**
  * Route Optimization Endpoints
- * POST /api/routes/optimize - Optimize route for a driver using VROOM
+ * POST /api/routes/optimize - Optimize route for a driver using OR-Tools VRP solver
  */
 
 import { commonSchemas } from "../schemas/common.js";
 import { routeSchemas } from "../schemas/routes.js";
 import {
-  callVROOM,
-  convertOrdersToVROOM,
-  convertVehicleToVROOM,
-  parseVROOMResponse,
-} from "../services/vroom.js";
+  convertVehicleToORTools,
+  parseORToolsResponse,
+  solveVRPWithORTools,
+} from "../services/route-optimizer.js";
 
 export default async function optimizeRoutes(fastify, options) {
   /**
@@ -25,7 +24,7 @@ export default async function optimizeRoutes(fastify, options) {
         tags: ["routes"],
         summary: "Optimize route for a driver",
         description:
-          "Optimize delivery route for a driver using VROOM. Optionally specify order IDs to optimize, otherwise optimizes all orders for the driver.",
+          "Optimize delivery route for a driver using OR-Tools VRP solver. Optionally specify order IDs to optimize, otherwise optimizes all orders for the driver.",
         body: routeSchemas.OptimizeRouteBody,
         response: {
           200: routeSchemas.OptimizeRouteResponse,
@@ -79,7 +78,7 @@ export default async function optimizeRoutes(fastify, options) {
           return reply.code(400).send({ error: "No orders found for driver" });
         }
 
-        // Filter orders with coordinates (required for VROOM)
+        // Filter orders with coordinates (required for optimization)
         const ordersWithCoords = orders.filter(
           (o) => o.latitude != null && o.longitude != null
         );
@@ -110,28 +109,23 @@ export default async function optimizeRoutes(fastify, options) {
           };
         }
 
-        // 4. Convert to VROOM format
-        const vroomJobs = convertOrdersToVROOM(ordersWithCoords);
-        const vroomVehicle = convertVehicleToVROOM(
+        // 4. Convert to OR-Tools format and get depot location
+        const { depotLocation } = convertVehicleToORTools(
           vehicle,
           driver,
           ordersWithCoords
         );
 
-        // 5. Call VROOM (skip if not configured)
-        if (!process.env.VROOM_URL) {
-          return reply.code(503).send({
-            error: "VROOM not configured",
-            message:
-              "VROOM_URL environment variable not set. Route optimization is not available yet.",
-          });
-        }
+        // 5. Solve VRP using OR-Tools
+        const solverResult = await solveVRPWithORTools(
+          ordersWithCoords,
+          vehicle,
+          depotLocation
+        );
 
-        const vroomResponse = await callVROOM(vroomJobs, [vroomVehicle]);
-
-        // 6. Parse VROOM response
-        const optimizedRoute = parseVROOMResponse(
-          vroomResponse,
+        // 6. Parse OR-Tools solution
+        const optimizedRoute = parseORToolsResponse(
+          solverResult,
           ordersWithCoords
         );
 
@@ -183,4 +177,3 @@ export default async function optimizeRoutes(fastify, options) {
     }
   );
 }
-

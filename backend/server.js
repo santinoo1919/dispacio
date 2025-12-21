@@ -1,6 +1,6 @@
 /**
  * Fastify server entry point
- * Smart Dispatch Backend with VROOM integration
+ * Smart Dispatch Backend with OR-Tools VRP solver
  */
 
 import Fastify from "fastify";
@@ -45,7 +45,7 @@ await fastify.register(swagger, {
   openapi: {
     info: {
       title: "Smart Dispatch API",
-      description: "API for smart dispatch with VROOM route optimization",
+      description: "API for smart dispatch with OR-Tools route optimization",
       version: "1.0.0",
     },
     servers: [
