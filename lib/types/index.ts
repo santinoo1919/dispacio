@@ -31,10 +31,15 @@ export interface Driver {
   name: string;
   phone: string;
   initials: string;
+  location?: {
+    lat: number;
+    lng: number;
+  };
 }
 
 export interface Zone {
-  id: string;
+  id: string; // Display name (e.g., "Zone 1")
+  serverId?: string; // Backend UUID for API calls
   center: {
     lat: number;
     lng: number;

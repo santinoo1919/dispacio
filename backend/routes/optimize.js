@@ -55,11 +55,19 @@ export default async function optimizeRoutes(fastify, options) {
         // 2. Fetch orders for driver
         let ordersResult;
         if (orderIds && orderIds.length > 0) {
-          // Optimize specific orders
+          // Optimize specific orders (don't require driver_id match - will assign during optimization)
           ordersResult = await fastify.pg.query(
             `SELECT * FROM orders 
-           WHERE driver_id = $1 AND id = ANY($2::uuid[])
+           WHERE id = ANY($1::uuid[])
            ORDER BY route_rank NULLS LAST, created_at`,
+            [orderIds]
+          );
+
+          // Assign driver to these orders if not already assigned
+          await fastify.pg.query(
+            `UPDATE orders 
+           SET driver_id = $1, updated_at = NOW()
+           WHERE id = ANY($2::uuid[]) AND (driver_id IS NULL OR driver_id != $1)`,
             [driverId, orderIds]
           );
         } else {

@@ -27,8 +27,13 @@ import {
 export default function ZoneDetailScreen() {
   const router = useRouter();
   const { zoneId } = useLocalSearchParams<{ zoneId: string }>();
-  const { zones, assignDriverToZone, optimizeRoute, isOptimizing } =
-    useDispatchStore();
+  const {
+    zones,
+    assignDriverToZone,
+    optimizeRoute,
+    isOptimizing,
+    fetchOrdersFromAPI,
+  } = useDispatchStore();
   const [optimizedResult, setOptimizedResult] = useState<{
     totalDistance: number;
     totalDuration: number;
@@ -38,14 +43,29 @@ export default function ZoneDetailScreen() {
   const zoneOrders = zone?.orders ?? [];
   const assignedDriverId = zone?.assignedDriverId;
 
-  // Calculate distances between consecutive orders
+  // Sort orders by rank (optimized sequence) - orders with rank come first, then by rank value
+  const sortedOrders = useMemo(() => {
+    return [...zoneOrders].sort((a, b) => {
+      // If both have ranks, sort by rank
+      if (a.rank && b.rank) {
+        return a.rank - b.rank;
+      }
+      // If only one has rank, prioritize it
+      if (a.rank && !b.rank) return -1;
+      if (!a.rank && b.rank) return 1;
+      // If neither has rank, maintain original order
+      return 0;
+    });
+  }, [zoneOrders]);
+
+  // Calculate distances between consecutive orders (using sorted order)
   const orderDistances = useMemo(() => {
     const distances: (number | null)[] = [];
-    for (let i = 0; i < zoneOrders.length; i++) {
-      if (i < zoneOrders.length - 1) {
+    for (let i = 0; i < sortedOrders.length; i++) {
+      if (i < sortedOrders.length - 1) {
         const distance = calculateOrderDistance(
-          zoneOrders[i],
-          zoneOrders[i + 1]
+          sortedOrders[i],
+          sortedOrders[i + 1]
         );
         distances.push(distance);
       } else {
@@ -53,7 +73,7 @@ export default function ZoneDetailScreen() {
       }
     }
     return distances;
-  }, [zoneOrders]);
+  }, [sortedOrders]);
 
   const handleDriverSelect = async (driverId: string) => {
     if (!zoneId) return;
@@ -78,6 +98,8 @@ export default function ZoneDetailScreen() {
         totalDistance: result.totalDistance,
         totalDuration: result.totalDuration,
       });
+      // Refresh orders to get updated ranks from backend
+      await fetchOrdersFromAPI(assignedDriverId);
     }
   };
 
@@ -245,11 +267,15 @@ export default function ZoneDetailScreen() {
 
         {/* Orders List */}
         <View className="mb-6">
-          <Text className="text-lg font-bold text-text mb-3">Orders</Text>
-          {zoneOrders.map((order, index) => {
+          <Text className="text-lg font-bold text-text mb-3">
+            Orders {sortedOrders.some((o) => o.rank) && "(Optimized Route)"}
+          </Text>
+          {sortedOrders.map((order, index) => {
             const driver = order.driverId
               ? getDriverById(order.driverId)
               : undefined;
+            // Use rank as stop number if available, otherwise use index + 1
+            const stopNumber = order.rank || index + 1;
             return (
               <View key={order.id} className="mb-3">
                 <OrderCard
@@ -258,6 +284,8 @@ export default function ZoneDetailScreen() {
                   driverInitials={driver?.initials}
                   driverColor={getDriverColor(order.driverId)}
                   distanceToNext={orderDistances[index]}
+                  stopNumber={stopNumber}
+                  totalStops={sortedOrders.length}
                 />
               </View>
             );

@@ -238,6 +238,69 @@ export default async function ordersRoutes(fastify, options) {
   );
 
   /**
+   * PUT /api/orders/bulk-assign-driver
+   * Bulk assign driver to multiple orders
+   * Body: { orderIds: ["uuid1", "uuid2", ...], driverId: "uuid" }
+   * NOTE: This must come BEFORE /:id route to avoid route matching conflicts
+   */
+  fastify.put(
+    "/bulk-assign-driver",
+    {
+      schema: {
+        tags: ["orders"],
+        summary: "Bulk assign driver to orders",
+        description:
+          "Assign a driver to multiple orders in a single operation. More efficient than updating orders individually.",
+        body: orderSchemas.BulkAssignDriverBody,
+        response: {
+          200: orderSchemas.BulkAssignDriverResponse,
+          400: commonSchemas.Error,
+          500: commonSchemas.Error,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { orderIds, driverId } = request.body;
+
+      try {
+        // Validate driver exists
+        const driverResult = await fastify.pg.query(
+          "SELECT id FROM drivers WHERE id = $1",
+          [driverId]
+        );
+
+        if (driverResult.rows.length === 0) {
+          return reply.code(400).send({
+            error: "Driver not found",
+            message: `Driver with ID ${driverId} does not exist`,
+          });
+        }
+
+        // Bulk update orders
+        const result = await fastify.pg.query(
+          `UPDATE orders 
+           SET driver_id = $1, updated_at = NOW() 
+           WHERE id = ANY($2::uuid[])
+           RETURNING id`,
+          [driverId, orderIds]
+        );
+
+        return {
+          success: true,
+          updated: result.rows.length,
+          orderIds: result.rows.map((row) => row.id),
+        };
+      } catch (error) {
+        fastify.log.error("Bulk assign driver error:", error);
+        return reply.code(500).send({
+          error: "Failed to assign driver to orders",
+          message: error.message,
+        });
+      }
+    }
+  );
+
+  /**
    * PUT /api/orders/:id
    * Update order
    */

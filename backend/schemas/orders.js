@@ -111,6 +111,18 @@ export const DeleteOrderResponseSchema = z.object({
   id: z.string().uuid(),
 });
 
+// Body schema for PUT /api/orders/bulk-assign-driver
+export const BulkAssignDriverBodySchema = z.object({
+  orderIds: z.array(z.string().uuid()).min(1),
+  driverId: z.string().uuid(),
+});
+
+export const BulkAssignDriverResponseSchema = z.object({
+  success: z.boolean(),
+  updated: z.number(),
+  orderIds: z.array(z.string().uuid()),
+});
+
 // Helper to clean schema (remove $schema property that Fastify doesn't like)
 const cleanSchema = (schema) => {
   const cleaned = { ...schema };
@@ -146,5 +158,11 @@ export const orderSchemas = {
   ),
   DeleteOrderResponse: cleanSchema(
     zodToJsonSchema(DeleteOrderResponseSchema, schemaOptions)
+  ),
+  BulkAssignDriverBody: cleanSchema(
+    zodToJsonSchema(BulkAssignDriverBodySchema, schemaOptions)
+  ),
+  BulkAssignDriverResponse: cleanSchema(
+    zodToJsonSchema(BulkAssignDriverResponseSchema, schemaOptions)
   ),
 };

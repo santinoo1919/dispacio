@@ -41,7 +41,7 @@ export class ZoneClusterer {
     minPoints?: number;
   }) {
     this.clusterer = new Supercluster<ClusterProperties>({
-      radius: options?.radius ?? 120, // Larger radius = fewer, larger zones
+      radius: options?.radius ?? 80, // Smaller radius = more, smaller zones (was 120)
       maxZoom: options?.maxZoom ?? 14,
       minZoom: 0,
       minPoints: options?.minPoints ?? 2,
@@ -93,7 +93,19 @@ export class ZoneClusterer {
     this.clusterer.load(features);
 
     const bbox = this.computeBoundingBox(withCoords);
-    const zoomLevel = 8; // Lower zoom = larger zones (city-scale, fewer zones)
+    // Higher zoom level = smaller zones (more zones)
+    // Adjust based on order count: more orders = higher zoom = more zones
+    const orderCount = withCoords.length;
+    let zoomLevel = 11; // Default: medium-high zoom for better zone splitting
+    if (orderCount > 20) {
+      zoomLevel = 12; // High zoom for many orders = many small zones
+    } else if (orderCount > 10) {
+      zoomLevel = 11; // Medium-high zoom for medium orders (10-20) = ~3-4 zones
+    } else if (orderCount > 5) {
+      zoomLevel = 10; // Medium zoom for 5-10 orders = ~2-3 zones
+    } else {
+      zoomLevel = 9; // Lower zoom for few orders = 1-2 zones
+    }
     const clusters = this.clusterer.getClusters(
       bbox,
       zoomLevel

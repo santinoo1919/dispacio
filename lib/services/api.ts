@@ -58,12 +58,12 @@ export interface OptimizeRouteResponse {
   driverId: string;
   totalDistance: number;
   totalDuration: number;
-  orders: Array<{
+  orders: {
     orderId: string;
     orderNumber: string;
     rank: number;
     distanceFromPrev: number;
-  }>;
+  }[];
 }
 
 export interface ApiError {
@@ -89,10 +89,25 @@ async function apiRequest<T>(
       },
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      // If response is not JSON, get text
+      const text = await response.text();
+      throw new Error(
+        `API returned non-JSON: ${text} (Status: ${response.status})`
+      );
+    }
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || `HTTP ${response.status}`);
+      const errorMessage =
+        data?.error || data?.message || `HTTP ${response.status}`;
+      const fullError = new Error(errorMessage);
+      (fullError as any).status = response.status;
+      (fullError as any).data = data;
+      (fullError as any).endpoint = endpoint;
+      throw fullError;
     }
 
     return data;
@@ -122,14 +137,12 @@ export async function fetchOrders(driverId?: string): Promise<Order[]> {
  * Create orders (bulk from CSV)
  * @param orders Array of orders to create
  */
-export async function createOrders(
-  orders: CreateOrderRequest[]
-): Promise<{
+export async function createOrders(orders: CreateOrderRequest[]): Promise<{
   success: boolean;
   created: number;
   failed: number;
   orders: Order[];
-  errors?: Array<{ order: string; error: string }>;
+  errors?: { order: string; error: string }[];
 }> {
   return apiRequest("/api/orders", {
     method: "POST",
@@ -149,6 +162,25 @@ export async function updateOrder(
   return apiRequest(`/api/orders/${orderId}`, {
     method: "PUT",
     body: JSON.stringify(updates),
+  });
+}
+
+/**
+ * Bulk assign driver to multiple orders
+ * @param orderIds Array of order UUIDs to assign driver to
+ * @param driverId Backend driver UUID
+ */
+export async function bulkAssignDriver(
+  orderIds: string[],
+  driverId: string
+): Promise<{
+  success: boolean;
+  updated: number;
+  orderIds: string[];
+}> {
+  return apiRequest("/api/orders/bulk-assign-driver", {
+    method: "PUT",
+    body: JSON.stringify({ orderIds, driverId }),
   });
 }
 
@@ -190,3 +222,67 @@ export async function healthCheck(): Promise<{
   return apiRequest("/health");
 }
 
+/**
+ * Zone-related API functions
+ */
+
+export interface Zone {
+  id: string;
+  name: string;
+  center: { lat: number; lng: number };
+  radius?: number | null;
+  orders: Order[];
+  orderCount: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateZoneInput {
+  name: string;
+  center: { lat: number; lng: number };
+  radius?: number;
+  orderIds: string[];
+}
+
+/**
+ * Get all zones with their orders
+ */
+export async function fetchZones(): Promise<{ zones: Zone[] }> {
+  return apiRequest("/api/zones");
+}
+
+/**
+ * Create zones from clustering
+ * @param zones Array of zone data with order IDs
+ */
+export async function createZones(zones: CreateZoneInput[]): Promise<{
+  success: boolean;
+  created: number;
+  zones: Zone[];
+}> {
+  return apiRequest("/api/zones", {
+    method: "POST",
+    body: JSON.stringify({ zones }),
+  });
+}
+
+/**
+ * Assign driver to all orders in a zone
+ * @param zoneId Zone UUID
+ * @param driverId Backend driver UUID
+ */
+export async function assignDriverToZone(
+  zoneId: string,
+  driverId: string
+): Promise<{
+  success: boolean;
+  zoneId: string;
+  driverId: string;
+  updated: number;
+  orderIds: string[];
+}> {
+  return apiRequest(`/api/zones/${zoneId}/assign-driver`, {
+    method: "PUT",
+    body: JSON.stringify({ driverId }),
+  });
+}

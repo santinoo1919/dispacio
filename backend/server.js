@@ -7,6 +7,7 @@ import Fastify from "fastify";
 import { registerDatabase, runMigrations } from "./db/connection.js";
 import optimizeRoutes from "./routes/optimize.js";
 import ordersRoutes from "./routes/orders.js";
+import zonesRoutes from "./routes/zones.js";
 
 const fastify = Fastify({
   logger: {
@@ -59,6 +60,7 @@ await fastify.register(swagger, {
     tags: [
       { name: "orders", description: "Order management endpoints" },
       { name: "routes", description: "Route optimization endpoints" },
+      { name: "zones", description: "Zone management endpoints" },
       { name: "health", description: "Health check endpoints" },
     ],
     components: {
@@ -99,6 +101,7 @@ if (process.env.RUN_MIGRATIONS !== "false") {
 // Register routes
 await fastify.register(ordersRoutes, { prefix: "/api/orders" });
 await fastify.register(optimizeRoutes, { prefix: "/api/routes" });
+await fastify.register(zonesRoutes, { prefix: "/api/zones" });
 
 // Health check endpoint
 fastify.get(

@@ -16,6 +16,7 @@ export default function DispatchScreen() {
   }, []);
 
   const handleZonePress = (zoneId: string) => {
+    // Optional: Open details modal for full order information
     router.push(`/zone-detail?zoneId=${encodeURIComponent(zoneId)}`);
   };
 

@@ -32,19 +32,30 @@ export async function runMigrations(fastify) {
   const client = await fastify.pg.connect();
 
   try {
-    // Read migration file
+    // Read migration files
     const fs = await import("fs");
     const path = await import("path");
     const { fileURLToPath } = await import("url");
 
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const migrationPath = path.join(__dirname, "migrations", "001_initial.sql");
-    const migrationSQL = fs.readFileSync(migrationPath, "utf8");
+    const migrationsDir = path.join(__dirname, "migrations");
+    
+    // Get all migration files sorted by name
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith(".sql"))
+      .sort();
 
-    // Execute migration
-    await client.query(migrationSQL);
-    fastify.log.info("Database migrations executed successfully");
+    // Execute each migration
+    for (const file of migrationFiles) {
+      const migrationPath = path.join(migrationsDir, file);
+      const migrationSQL = fs.readFileSync(migrationPath, "utf8");
+      await client.query(migrationSQL);
+      fastify.log.info(`Migration ${file} executed`);
+    }
+
+    fastify.log.info("All database migrations executed successfully");
   } catch (error) {
     fastify.log.error("Migration error:", error);
     throw error;

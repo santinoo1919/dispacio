@@ -80,3 +80,50 @@ export function calculateOrderDistance(
     order2.longitude
   );
 }
+
+/**
+ * Find the nearest driver to a zone center based on geographic proximity
+ * @param zoneCenter Zone center coordinates
+ * @param drivers Array of drivers with location data
+ * @returns Driver ID of the nearest driver, or first driver if no locations available
+ */
+export function findNearestDriver(
+  zoneCenter: { lat: number; lng: number },
+  drivers: Array<{ id: string; location?: { lat: number; lng: number } }>
+): string {
+  // Filter drivers with location data
+  const driversWithLocation = drivers.filter(
+    (driver) => driver.location != null
+  );
+
+  if (driversWithLocation.length === 0) {
+    // Fallback: return first driver if no locations available
+    return drivers[0]?.id || "";
+  }
+
+  let nearestDriver = driversWithLocation[0];
+  let minDistance = calculateDistance(
+    zoneCenter.lat,
+    zoneCenter.lng,
+    nearestDriver.location!.lat,
+    nearestDriver.location!.lng
+  );
+
+  for (const driver of driversWithLocation) {
+    if (!driver.location) continue;
+
+    const distance = calculateDistance(
+      zoneCenter.lat,
+      zoneCenter.lng,
+      driver.location.lat,
+      driver.location.lng
+    );
+
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestDriver = driver;
+    }
+  }
+
+  return nearestDriver.id;
+}

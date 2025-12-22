@@ -237,7 +237,8 @@ export function OrderCard({
         <View className="flex-row items-start mb-2">
           <NumberBadge number={index + 1} />
           <View className="flex-1">
-            {variant === "location" && stopNumber && (
+            {/* Show stop number if provided (for optimized routes) */}
+            {stopNumber && (
               <StopBadge stopNumber={stopNumber} totalStops={totalStops} />
             )}
             <CustomerInfo
