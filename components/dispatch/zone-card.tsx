@@ -4,9 +4,9 @@
  */
 
 import { Card } from "@/components/ui/card";
+import { useOptimizeRoute } from "@/hooks/use-route-mutations";
 import { getDriverById, getDriverColor } from "@/lib/data/drivers";
 import { Zone } from "@/lib/types";
-import { useDispatchStore } from "@/store/dispatch-store";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -20,9 +20,7 @@ interface ZoneCardProps {
 
 export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
   const router = useRouter();
-  const { optimizeRoute, isOptimizing, fetchOrdersFromAPI } =
-    useDispatchStore();
-  const [localOptimizing, setLocalOptimizing] = useState(false);
+  const optimizeRouteMutation = useOptimizeRoute();
 
   // Sort orders by rank (optimized sequence)
   const sortedOrders = useMemo(() => {
@@ -48,33 +46,28 @@ export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
   const handleOptimize = async () => {
     if (!assignedDriverId) return;
 
-    setLocalOptimizing(true);
-    try {
-      // Get order UUIDs for backend
-      const orderIds = zone.orders
-        .map((o) => (o as any).serverId)
-        .filter(Boolean) as string[];
+    // Get order UUIDs for backend
+    const orderIds = zone.orders
+      .map((o) => o.serverId)
+      .filter(Boolean) as string[];
 
-      if (orderIds.length === 0) return;
+    if (orderIds.length === 0) return;
 
-      // Ensure driver is assigned in backend
-      const { getBackendDriverId } = await import("@/lib/data/drivers");
-      const backendDriverId = getBackendDriverId(assignedDriverId);
-      if (backendDriverId && orderIds.length > 0) {
-        const { bulkAssignDriver } = await import("@/lib/services/api");
-        await bulkAssignDriver(orderIds, backendDriverId).catch(() => {});
-      }
-
-      const result = await optimizeRoute(assignedDriverId, orderIds);
-      if (result?.success) {
-        await fetchOrdersFromAPI();
-      }
-    } finally {
-      setLocalOptimizing(false);
+    // Ensure driver is assigned in backend
+    const { getBackendDriverId } = await import("@/lib/data/drivers");
+    const backendDriverId = getBackendDriverId(assignedDriverId);
+    if (backendDriverId && orderIds.length > 0) {
+      const { bulkAssignDriver } = await import("@/lib/services/api");
+      await bulkAssignDriver(orderIds, backendDriverId).catch(() => {});
     }
+
+    await optimizeRouteMutation.mutateAsync({
+      driverId: assignedDriverId,
+      orderIds,
+    });
   };
 
-  const isOptimizingThisZone = isOptimizing || localOptimizing;
+  const isOptimizingThisZone = optimizeRouteMutation.isPending;
   const hasOptimizedRoute = sortedOrders.some((o) => o.rank);
 
   return (

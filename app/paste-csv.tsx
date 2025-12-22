@@ -3,24 +3,84 @@
  * Native iOS modal for CSV input
  */
 
+import { CSVParser } from "@/lib/csv/parser";
+import { useCreateOrders } from "@/hooks/use-order-mutations";
+import { useCreateZones } from "@/hooks/use-zone-mutations";
+import { transformOrderToApi } from "@/lib/transformers/orders";
 import { useDispatchStore } from "@/store/dispatch-store";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 export default function PasteCSVScreen() {
   const router = useRouter();
-  const {
-    csvText,
-    setCsvText,
-    isLoading,
-    pasteFromClipboard,
-    parseAndUploadCSV,
-    clear,
-  } = useDispatchStore();
+  const { csvText, setCsvText, pasteFromClipboard, clear } = useDispatchStore();
+  const createOrdersMutation = useCreateOrders();
+  const createZonesMutation = useCreateZones();
 
   const handleParseAndDismiss = async () => {
-    const result = await parseAndUploadCSV();
-    if (result?.success) {
+    if (!csvText.trim()) {
+      return;
+    }
+
+    // Parse CSV locally first
+    const result = CSVParser.parse(csvText);
+
+    if (!result.success) {
+      return;
+    }
+
+    // Convert to API format using transformer
+    const apiOrders = result.orders.map(transformOrderToApi);
+
+    // Upload to backend
+    const uploadResult = await createOrdersMutation.mutateAsync(apiOrders);
+
+    if (uploadResult.success) {
+      // Cluster orders and create zones in backend
+      const { ZoneClusterer } = await import("@/lib/clustering/zone-clusterer");
+      const { getFrontendDriverId } = await import("@/lib/data/drivers");
+      const zoneClusterer = new ZoneClusterer();
+
+      // Convert uploaded orders to local format for clustering
+      const localOrders = uploadResult.orders.map((o) => ({
+        id: o.order_number || o.id,
+        customerName: o.customer_name,
+        address: o.address,
+        phone: o.phone,
+        notes: o.notes,
+        amount: o.amount,
+        items: o.items,
+        priority: (o.priority as "low" | "normal" | "high") || "normal",
+        rank: o.route_rank || 0,
+        driverId: getFrontendDriverId(o.driver_id) || undefined,
+        latitude: o.latitude,
+        longitude: o.longitude,
+        packageLength: o.package_length,
+        packageWidth: o.package_width,
+        packageHeight: o.package_height,
+        packageWeight: o.package_weight,
+        packageVolume: o.package_volume,
+        serverId: o.id,
+        rawData: o.raw_data || {},
+      }));
+
+      // Cluster orders locally
+      const clusteredZones = zoneClusterer.clusterOrders(localOrders);
+
+      // Create zones in backend with order assignments
+      const zonesToCreate = clusteredZones.map((zone) => ({
+        name: zone.id,
+        center: zone.center,
+        orderIds: zone.orders
+          .map((o) => o.serverId)
+          .filter(Boolean) as string[],
+      }));
+
+      if (zonesToCreate.length > 0) {
+        await createZonesMutation.mutateAsync(zonesToCreate);
+      }
+
+      // Success - navigate back
       router.back();
     }
   };
@@ -76,15 +136,15 @@ Or tap 'From Clipboard' above"
         <View className="flex-row gap-3">
           <Pressable
             onPress={handleParseAndDismiss}
-            disabled={isLoading || !csvText.trim()}
+            disabled={createOrdersMutation.isPending || !csvText.trim()}
             className={`flex-1 py-4 rounded-lg ${
-              isLoading || !csvText.trim()
+              createOrdersMutation.isPending || !csvText.trim()
                 ? "bg-gray-400"
                 : "bg-accent-600  active:bg-accent-700"
             }`}
           >
             <Text className="text-white text-center font-semibold text-base">
-              {isLoading ? "⏳ Parsing..." : "Parse CSV"}
+              {createOrdersMutation.isPending ? "⏳ Parsing..." : "Parse CSV"}
             </Text>
           </Pressable>
 

@@ -12,7 +12,9 @@ import {
   generateWhatsAppMessage,
   shareToWhatsApp,
 } from "@/lib/utils/whatsapp-share";
-import { useDispatchStore } from "@/store/dispatch-store";
+import { useAssignDriverToZone } from "@/hooks/use-zone-mutations";
+import { useOptimizeRoute } from "@/hooks/use-route-mutations";
+import { useZones } from "@/hooks/use-zones";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -27,19 +29,15 @@ import {
 export default function ZoneDetailScreen() {
   const router = useRouter();
   const { zoneId } = useLocalSearchParams<{ zoneId: string }>();
-  const {
-    zones,
-    assignDriverToZone,
-    optimizeRoute,
-    isOptimizing,
-    fetchOrdersFromAPI,
-  } = useDispatchStore();
+  const { data: zones } = useZones();
+  const assignDriverMutation = useAssignDriverToZone();
+  const optimizeRouteMutation = useOptimizeRoute();
   const [optimizedResult, setOptimizedResult] = useState<{
     totalDistance: number;
     totalDuration: number;
   } | null>(null);
 
-  const zone = zones.find((z) => z.id === zoneId);
+  const zone = zones?.find((z) => z.id === zoneId);
   const zoneOrders = zone?.orders ?? [];
   const assignedDriverId = zone?.assignedDriverId;
 
@@ -77,8 +75,7 @@ export default function ZoneDetailScreen() {
 
   const handleDriverSelect = async (driverId: string) => {
     if (!zoneId) return;
-    await assignDriverToZone(zoneId, driverId);
-    showToast.success("Driver Assigned", "Driver assigned to zone");
+    await assignDriverMutation.mutateAsync({ zoneId, driverId });
     setOptimizedResult(null); // Reset optimization result when driver changes
   };
 
@@ -91,15 +88,21 @@ export default function ZoneDetailScreen() {
     const orderIds = zoneOrders
       .map((o) => o.serverId || o.id)
       .filter(Boolean) as string[];
-    const result = await optimizeRoute(assignedDriverId, orderIds);
-
-    if (result) {
-      setOptimizedResult({
-        totalDistance: result.totalDistance,
-        totalDuration: result.totalDuration,
+    
+    try {
+      const result = await optimizeRouteMutation.mutateAsync({
+        driverId: assignedDriverId,
+        orderIds,
       });
-      // Refresh orders to get updated ranks from backend
-      await fetchOrdersFromAPI(assignedDriverId);
+
+      if (result) {
+        setOptimizedResult({
+          totalDistance: result.totalDistance,
+          totalDuration: result.totalDuration,
+        });
+      }
+    } catch (error) {
+      // Error handling is done in the mutation hook
     }
   };
 
@@ -217,14 +220,14 @@ export default function ZoneDetailScreen() {
           <View className="mb-6">
             <Pressable
               onPress={handleOptimizeRoute}
-              disabled={isOptimizing || zoneOrders.length === 0}
+              disabled={optimizeRouteMutation.isPending || zoneOrders.length === 0}
               className={`bg-accent-600 rounded-lg py-4 px-4 flex-row items-center justify-center ${
-                isOptimizing || zoneOrders.length === 0
+                optimizeRouteMutation.isPending || zoneOrders.length === 0
                   ? "opacity-50"
                   : "active:bg-accent-700"
               }`}
             >
-              {isOptimizing ? (
+              {optimizeRouteMutation.isPending ? (
                 <>
                   <ActivityIndicator color="#fff" size="small" />
                   <Text className="text-white font-semibold text-base ml-2">

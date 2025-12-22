@@ -1,19 +1,16 @@
 import { EmptyState } from "@/components/dispatch/empty-state";
 import { ZoneCard } from "@/components/dispatch/zone-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { useDispatchStore } from "@/store/dispatch-store";
+import { useZones } from "@/hooks/use-zones";
 import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { FlatList, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 
 export default function DispatchScreen() {
-  const { orders, zones, fetchOrdersFromAPI } = useDispatchStore();
+  const { data: zones, isLoading } = useZones();
   const router = useRouter();
 
-  // Fetch orders from API on mount
-  useEffect(() => {
-    fetchOrdersFromAPI();
-  }, []);
+  // Derive orders from zones
+  const orders = zones?.flatMap((z) => z.orders) || [];
 
   const handleZonePress = (zoneId: string) => {
     // Optional: Open details modal for full order information
@@ -38,9 +35,13 @@ export default function DispatchScreen() {
         }
       />
 
-      {orders.length === 0 ? (
+      {isLoading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" />
+        </View>
+      ) : orders.length === 0 ? (
         <EmptyState />
-      ) : zones.length === 0 ? (
+      ) : zones && zones.length === 0 ? (
         <View className="flex-1 items-center justify-center p-6">
           <Text className="text-text-secondary text-center">
             No zones available. Please import CSV data.
@@ -48,10 +49,10 @@ export default function DispatchScreen() {
         </View>
       ) : (
         <FlatList
-          data={zones}
+          data={zones || []}
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => {
-            const isLast = index === zones.length - 1;
+            const isLast = index === (zones?.length || 0) - 1;
             return (
               <View>
                 <ZoneCard
