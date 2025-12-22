@@ -150,14 +150,37 @@ export default async function optimizeRoutes(fastify, options) {
             );
           }
 
-          // Reset ranks for orders not in optimized route
+          // Reset ranks for orders in the same zone(s) as optimized orders, but not in the optimized route
+          // This ensures zones are independent - optimizing one zone doesn't affect others
           const optimizedOrderIds = optimizedRoute.orders.map((o) => o.orderId);
-          await client.query(
-            `UPDATE orders 
-           SET route_rank = NULL, updated_at = NOW() 
-           WHERE driver_id = $1 AND id != ALL($2::uuid[])`,
-            [driverId, optimizedOrderIds]
+
+          // Get zone IDs for the optimized orders
+          const zoneResult = await client.query(
+            `SELECT DISTINCT zone_id FROM orders WHERE id = ANY($1::uuid[]) AND zone_id IS NOT NULL`,
+            [optimizedOrderIds]
           );
+
+          const zoneIds = zoneResult.rows.map((row) => row.zone_id);
+
+          if (zoneIds.length > 0) {
+            // Reset ranks only for orders in the same zones, same driver, but not in optimized route
+            await client.query(
+              `UPDATE orders 
+               SET route_rank = NULL, updated_at = NOW() 
+               WHERE driver_id = $1 
+                 AND zone_id = ANY($2::uuid[])
+                 AND id != ALL($3::uuid[])`,
+              [driverId, zoneIds, optimizedOrderIds]
+            );
+          } else {
+            // Fallback: if no zones, reset all orders for this driver (backward compatibility)
+            await client.query(
+              `UPDATE orders 
+               SET route_rank = NULL, updated_at = NOW() 
+               WHERE driver_id = $1 AND id != ALL($2::uuid[])`,
+              [driverId, optimizedOrderIds]
+            );
+          }
 
           await client.query("COMMIT");
         } catch (error) {

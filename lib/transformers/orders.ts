@@ -46,7 +46,7 @@ export function transformOrder(apiOrder: ApiOrder): Order {
     amount: apiOrder.amount,
     items: apiOrder.items,
     priority: (apiOrder.priority as "low" | "normal" | "high") || "normal",
-    rank: apiOrder.route_rank || 0,
+    rank: apiOrder.route_rank ?? undefined, // Use nullish coalescing - preserve 0, convert null to undefined
     driverId: getFrontendDriverId(apiOrder.driver_id) || undefined, // Convert backend UUID to frontend ID
     latitude: apiOrder.latitude,
     longitude: apiOrder.longitude,
