@@ -108,4 +108,3 @@ export function transformOrderToApi(order: Order): {
     rawData: order.rawData,
   };
 }
-

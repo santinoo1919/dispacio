@@ -1,6 +1,6 @@
 /**
- * React Query mutation hooks for route optimization
- * Handles optimizing routes using VROOM
+ * React Query hooks for route optimization
+ * Handles optimizing routes using OR-Tools
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";

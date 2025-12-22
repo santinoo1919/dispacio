@@ -4,8 +4,8 @@
  */
 
 import { CSVParser } from "@/lib/csv/parser";
-import { useCreateOrders } from "@/hooks/use-order-mutations";
-import { useCreateZones } from "@/hooks/use-zone-mutations";
+import { useCreateOrders } from "@/hooks/use-orders";
+import { useCreateZones } from "@/hooks/use-zones";
 import { transformOrderToApi } from "@/lib/transformers/orders";
 import { useDispatchStore } from "@/store/dispatch-store";
 import { useRouter } from "expo-router";

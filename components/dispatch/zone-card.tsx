@@ -4,12 +4,11 @@
  */
 
 import { Card } from "@/components/ui/card";
-import { useOptimizeRoute } from "@/hooks/use-route-mutations";
+import { useOptimizeRoute } from "@/hooks/use-routes";
 import { getDriverById, getDriverColor } from "@/lib/data/drivers";
 import { Zone } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
 interface ZoneCardProps {
@@ -19,7 +18,6 @@ interface ZoneCardProps {
 }
 
 export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
-  const router = useRouter();
   const optimizeRouteMutation = useOptimizeRoute();
 
   // Sort orders by rank (optimized sequence)

@@ -11,7 +11,7 @@ export interface Order {
   amount?: number;
   items?: string;
   priority?: "low" | "normal" | "high";
-  rank: number; // Order position in dispatch sequence
+  rank?: number; // Order position in dispatch sequence (undefined if not optimized)
   driverId?: string; // Driver assigned to this order
   latitude?: number; // Optional: coordinate from CSV
   longitude?: number; // Optional: coordinate from CSV
