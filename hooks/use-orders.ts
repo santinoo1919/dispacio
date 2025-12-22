@@ -8,6 +8,7 @@ import {
   bulkAssignDriver,
   createOrders,
   deleteOrder,
+  fetchOrder,
   fetchOrders,
   updateOrder,
 } from "@/lib/services/api";
@@ -37,22 +38,14 @@ export function useOrders(driverId?: string) {
 
 /**
  * Fetch a single order by ID
- * @param orderId Order ID (frontend format)
+ * @param orderId Order UUID from backend (serverId)
  */
 export function useOrder(orderId: string) {
   return useQuery({
     queryKey: ["orders", orderId],
     queryFn: async () => {
-      // For now, fetch all orders and find the one we need
-      // TODO: Add single order endpoint to backend
-      const apiOrders = await fetchOrders();
-      const order = apiOrders.find(
-        (o) => o.order_number === orderId || o.id === orderId
-      );
-      if (!order) {
-        throw new Error(`Order ${orderId} not found`);
-      }
-      return transformOrder(order);
+      const apiOrder = await fetchOrder(orderId);
+      return transformOrder(apiOrder);
     },
     enabled: !!orderId,
   });

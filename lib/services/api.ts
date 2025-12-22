@@ -134,6 +134,14 @@ export async function fetchOrders(driverId?: string): Promise<Order[]> {
 }
 
 /**
+ * Fetch a single order by ID
+ * @param orderId Order UUID from backend
+ */
+export async function fetchOrder(orderId: string): Promise<Order> {
+  return apiRequest<Order>(`/api/orders/${orderId}`);
+}
+
+/**
  * Create orders (bulk from CSV)
  * @param orders Array of orders to create
  */

@@ -9,11 +9,11 @@
 
 import { FallbackMap } from "@/components/maps/fallback-map";
 import { ScreenHeader } from "@/components/ui/screen-header";
+import { useZones } from "@/hooks/use-zones";
 import { DRIVERS, getDriverColor } from "@/lib/data/drivers";
 import { Order } from "@/lib/types";
 import { Coordinates, getOrderCoordinates } from "@/lib/utils/geocoding";
 import { isNativeMapAvailable } from "@/lib/utils/map-availability";
-import { useDispatchStore } from "@/store/dispatch-store";
 import { useMemo } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
@@ -21,9 +21,10 @@ import { Platform, StyleSheet, Text, View } from "react-native";
 const getMapModule = (moduleName: "AppleMaps" | "GoogleMaps"): any => {
   if (isNativeMapAvailable()) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const expoMaps = require("expo-maps");
       return expoMaps[moduleName];
-    } catch (error) {
+    } catch {
       // Silently fail - will use fallback
     }
   }
@@ -37,7 +38,12 @@ const GoogleMaps = getMapModule("GoogleMaps");
 const UNASSIGNED_COLOR = "#71717A"; // zinc-500
 
 export default function MapScreen() {
-  const { orders } = useDispatchStore();
+  const { data: zones } = useZones();
+
+  // Derive orders from zones (memoized to avoid dependency warnings)
+  const orders = useMemo(() => {
+    return zones?.flatMap((z) => z.orders) || [];
+  }, [zones]);
 
   // Group orders by driver and get coordinates
   // SIMPLIFIED: Uses coordinates directly from CSV if available
@@ -53,7 +59,13 @@ export default function MapScreen() {
     DRIVERS.forEach((driver, index) => {
       const driverOrders = orders
         .filter((order) => order.driverId === driver.id)
-        .sort((a, b) => a.rank - b.rank) // Sort by rank to show route sequence
+        .sort((a, b) => {
+          // Handle undefined ranks: orders with rank come first, then by rank value
+          if (a.rank && b.rank) return a.rank - b.rank;
+          if (a.rank && !b.rank) return -1;
+          if (!a.rank && b.rank) return 1;
+          return 0;
+        }) // Sort by rank to show route sequence
         .map((order) => ({
           ...order,
           // Use CSV coordinates if available, otherwise geocode from address
@@ -93,7 +105,7 @@ export default function MapScreen() {
 
   // Calculate map region to fit all markers
   const mapRegion = useMemo(() => {
-    if (orders.length === 0) {
+    if (!orders || orders.length === 0) {
       // Default to Dubai center
       return {
         latitude: 25.2048,

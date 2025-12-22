@@ -26,36 +26,95 @@ export default async function zonesRoutes(fastify, options) {
     },
     async (request, reply) => {
       try {
-        // Get all zones
-        const zonesResult = await fastify.pg.query(
-          "SELECT * FROM zones ORDER BY created_at ASC"
+        // Get all zones with their orders in a single query (JOIN to avoid N+1)
+        const result = await fastify.pg.query(
+          `SELECT 
+            z.id AS zone_id,
+            z.name AS zone_name,
+            z.center_lat,
+            z.center_lng,
+            z.radius,
+            z.created_at AS zone_created_at,
+            z.updated_at AS zone_updated_at,
+            o.id AS order_id,
+            o.order_number,
+            o.customer_name,
+            o.address,
+            o.phone,
+            o.notes,
+            o.amount,
+            o.items,
+            o.priority,
+            o.package_length,
+            o.package_width,
+            o.package_height,
+            o.package_weight,
+            o.package_volume,
+            o.latitude,
+            o.longitude,
+            o.driver_id,
+            o.route_rank,
+            o.created_at AS order_created_at,
+            o.updated_at AS order_updated_at,
+            o.raw_data
+          FROM zones z
+          LEFT JOIN orders o ON o.zone_id = z.id
+          ORDER BY z.created_at ASC, o.route_rank NULLS LAST, o.created_at ASC`
         );
 
-        // Get orders for each zone
-        const zones = await Promise.all(
-          zonesResult.rows.map(async (zone) => {
-            const ordersResult = await fastify.pg.query(
-              `SELECT * FROM orders 
-               WHERE zone_id = $1 
-               ORDER BY route_rank NULLS LAST, created_at ASC`,
-              [zone.id]
-            );
-
-            return {
-              id: zone.id,
-              name: zone.name,
+        // Group orders by zone
+        const zonesMap = new Map();
+        
+        for (const row of result.rows) {
+          const zoneId = row.zone_id;
+          
+          if (!zonesMap.has(zoneId)) {
+            zonesMap.set(zoneId, {
+              id: zoneId,
+              name: row.zone_name,
               center: {
-                lat: parseFloat(zone.center_lat),
-                lng: parseFloat(zone.center_lng),
+                lat: parseFloat(row.center_lat),
+                lng: parseFloat(row.center_lng),
               },
-              radius: zone.radius ? parseFloat(zone.radius) : null,
-              orders: ordersResult.rows,
-              orderCount: ordersResult.rows.length,
-              createdAt: zone.created_at,
-              updatedAt: zone.updated_at,
-            };
-          })
-        );
+              radius: row.radius ? parseFloat(row.radius) : null,
+              orders: [],
+              orderCount: 0,
+              createdAt: row.zone_created_at,
+              updatedAt: row.zone_updated_at,
+            });
+          }
+
+          // Add order if it exists (LEFT JOIN may return null order_id)
+          if (row.order_id) {
+            const zone = zonesMap.get(zoneId);
+            zone.orders.push({
+              id: row.order_id,
+              order_number: row.order_number,
+              customer_name: row.customer_name,
+              address: row.address,
+              phone: row.phone,
+              notes: row.notes,
+              amount: row.amount,
+              items: row.items,
+              priority: row.priority,
+              package_length: row.package_length,
+              package_width: row.package_width,
+              package_height: row.package_height,
+              package_weight: row.package_weight,
+              package_volume: row.package_volume,
+              latitude: row.latitude,
+              longitude: row.longitude,
+              driver_id: row.driver_id,
+              route_rank: row.route_rank,
+              created_at: row.order_created_at,
+              updated_at: row.order_updated_at,
+              raw_data: row.raw_data,
+            });
+            zone.orderCount = zone.orders.length;
+          }
+        }
+
+        const zones = Array.from(zonesMap.values());
 
         return { zones };
       } catch (error) {
