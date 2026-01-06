@@ -1,5 +1,14 @@
 # Production Dockerfile for Fastify Backend
-FROM node:20-alpine
+# Using full Node image (not alpine) for native module compilation
+FROM node:20-bookworm-slim
+
+# Install build dependencies for native modules (node_or_tools)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -7,17 +16,20 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (production only)
-RUN npm ci --only=production
+# Install dependencies
+RUN npm ci
 
 # Copy source code
 COPY . .
+
+# Remove dev dependencies after build
+RUN npm prune --production
 
 # Expose port (Railway sets PORT env var)
 EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health/live || exit 1
 
 # Start server
