@@ -223,6 +223,101 @@ export default async function zonesRoutes(fastify, options) {
   );
 
   /**
+   * DELETE /api/zones/:id
+   * Delete a zone (orders are unassigned, not deleted)
+   */
+  fastify.delete(
+    "/:id",
+    {
+      schema: {
+        tags: ["zones"],
+        summary: "Delete a zone",
+        description: "Delete a zone. Orders in the zone are unassigned but not deleted.",
+        params: commonSchemas.UuidParam,
+        response: {
+          200: { type: "object", properties: { success: { type: "boolean" }, id: { type: "string" } } },
+          404: commonSchemas.Error,
+          500: commonSchemas.Error,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+
+      const client = await fastify.pg.connect();
+      try {
+        await client.query("BEGIN");
+
+        // Unassign orders from zone
+        await client.query(
+          "UPDATE orders SET zone_id = NULL, updated_at = NOW() WHERE zone_id = $1",
+          [id]
+        );
+
+        // Delete zone
+        const result = await client.query(
+          "DELETE FROM zones WHERE id = $1 RETURNING id",
+          [id]
+        );
+
+        if (result.rows.length === 0) {
+          await client.query("ROLLBACK");
+          return reply.code(404).send({ error: "Zone not found" });
+        }
+
+        await client.query("COMMIT");
+        return { success: true, id };
+      } catch (error) {
+        await client.query("ROLLBACK");
+        fastify.log.error("Delete zone error:", error);
+        return reply.code(500).send({ error: "Failed to delete zone", message: error.message });
+      } finally {
+        client.release();
+      }
+    }
+  );
+
+  /**
+   * DELETE /api/zones
+   * Delete all zones (orders are unassigned, not deleted)
+   */
+  fastify.delete(
+    "/",
+    {
+      schema: {
+        tags: ["zones"],
+        summary: "Delete all zones",
+        description: "Delete all zones. Orders are unassigned but not deleted.",
+        response: {
+          200: { type: "object", properties: { success: { type: "boolean" }, deleted: { type: "number" } } },
+          500: commonSchemas.Error,
+        },
+      },
+    },
+    async (request, reply) => {
+      const client = await fastify.pg.connect();
+      try {
+        await client.query("BEGIN");
+
+        // Unassign all orders from zones
+        await client.query("UPDATE orders SET zone_id = NULL, updated_at = NOW() WHERE zone_id IS NOT NULL");
+
+        // Delete all zones
+        const result = await client.query("DELETE FROM zones RETURNING id");
+
+        await client.query("COMMIT");
+        return { success: true, deleted: result.rows.length };
+      } catch (error) {
+        await client.query("ROLLBACK");
+        fastify.log.error("Delete all zones error:", error);
+        return reply.code(500).send({ error: "Failed to delete zones", message: error.message });
+      } finally {
+        client.release();
+      }
+    }
+  );
+
+  /**
    * PUT /api/zones/:id/assign-driver
    * Assign driver to all orders in a zone
    * Body: { driverId: "uuid" }

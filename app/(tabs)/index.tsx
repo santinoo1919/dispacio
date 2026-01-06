@@ -50,7 +50,7 @@ export default function DispatchScreen() {
       ) : (
         <FlatList
           data={zones || []}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.serverId || item.id}
           renderItem={({ item, index }) => {
             const isLast = index === (zones?.length || 0) - 1;
             return (
