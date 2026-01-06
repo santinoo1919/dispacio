@@ -4,10 +4,16 @@
  */
 
 import Fastify from "fastify";
+import { randomUUID } from "crypto";
 import { registerDatabase, runMigrations } from "./db/connection.js";
 import optimizeRoutes from "./routes/optimize.js";
 import ordersRoutes from "./routes/orders.js";
 import zonesRoutes from "./routes/zones.js";
+
+// Custom plugins
+import errorHandler from "./plugins/error-handler.js";
+import gracefulShutdown from "./plugins/graceful-shutdown.js";
+import requestContext from "./plugins/request-context.js";
 
 const fastify = Fastify({
   logger: {
@@ -23,7 +29,14 @@ const fastify = Fastify({
           }
         : undefined,
   },
+  // Generate request IDs
+  genReqId: (req) => req.headers["x-request-id"] || randomUUID(),
 });
+
+// Register core plugins first
+await fastify.register(errorHandler);
+await fastify.register(gracefulShutdown, { timeout: 30000 });
+await fastify.register(requestContext);
 
 // CORS configuration
 import cors from "@fastify/cors";
@@ -134,36 +147,136 @@ await fastify.register(ordersRoutes, { prefix: "/api/orders" });
 await fastify.register(optimizeRoutes, { prefix: "/api/routes" });
 await fastify.register(zonesRoutes, { prefix: "/api/zones" });
 
-// Health check endpoint
+// ============================================
+// Health Check Endpoints (Kubernetes-style)
+// ============================================
+
+// Liveness probe - is the server alive?
+// Used by orchestrators to restart unhealthy containers
 fastify.get(
-  "/health",
+  "/health/live",
   {
     schema: {
       tags: ["health"],
-      summary: "Health check endpoint",
-      description: "Check API and database connectivity",
-      response: {
-        200: commonSchemas.HealthResponse,
-        503: commonSchemas.HealthResponse,
-      },
+      summary: "Liveness probe",
+      description: "Check if the server is alive (for container orchestration)",
     },
+    config: { rateLimit: { max: 1000, timeWindow: "1 minute" } }, // Don't rate limit health checks
   },
   async (request, reply) => {
+    // If we can respond, we're alive
+    // Check if we're shutting down
+    if (fastify.isShuttingDown?.()) {
+      reply.code(503);
+      return { status: "shutting_down" };
+    }
+    return { status: "ok" };
+  }
+);
+
+// Readiness probe - is the server ready to accept traffic?
+// Used by load balancers to route traffic
+fastify.get(
+  "/health/ready",
+  {
+    schema: {
+      tags: ["health"],
+      summary: "Readiness probe",
+      description: "Check if the server is ready to accept traffic (database connected)",
+    },
+    config: { rateLimit: { max: 1000, timeWindow: "1 minute" } },
+  },
+  async (request, reply) => {
+    // Check if shutting down
+    if (fastify.isShuttingDown?.()) {
+      reply.code(503);
+      return { status: "shutting_down", ready: false };
+    }
+
+    // Check database connectivity
     try {
-      const result = await fastify.pg.query("SELECT NOW()");
+      const start = Date.now();
+      await fastify.pg.query("SELECT 1");
+      const dbLatency = Date.now() - start;
+
       return {
         status: "ok",
-        database: "connected",
-        timestamp: result.rows[0].now,
+        ready: true,
+        checks: {
+          database: { status: "ok", latency: `${dbLatency}ms` },
+        },
       };
     } catch (error) {
       reply.code(503);
       return {
         status: "error",
-        database: "disconnected",
-        error: error.message,
+        ready: false,
+        checks: {
+          database: { status: "error", error: error.message },
+        },
       };
     }
+  }
+);
+
+// Full health check - detailed system status
+fastify.get(
+  "/health",
+  {
+    schema: {
+      tags: ["health"],
+      summary: "Full health check",
+      description: "Comprehensive health check with system information",
+      response: {
+        200: commonSchemas.HealthResponse,
+        503: commonSchemas.HealthResponse,
+      },
+    },
+    config: { rateLimit: { max: 100, timeWindow: "1 minute" } },
+  },
+  async (request, reply) => {
+    const checks = {
+      database: { status: "unknown" },
+    };
+
+    let overallStatus = "ok";
+
+    // Check database
+    try {
+      const start = Date.now();
+      const result = await fastify.pg.query("SELECT NOW() as time, current_database() as db");
+      checks.database = {
+        status: "ok",
+        latency: `${Date.now() - start}ms`,
+        database: result.rows[0].db,
+        serverTime: result.rows[0].time,
+      };
+    } catch (error) {
+      checks.database = { status: "error", error: error.message };
+      overallStatus = "degraded";
+    }
+
+    // System info
+    const systemInfo = {
+      uptime: `${Math.floor(process.uptime())}s`,
+      memory: {
+        used: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+        total: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
+      },
+      nodeVersion: process.version,
+      environment: process.env.NODE_ENV || "development",
+    };
+
+    if (overallStatus !== "ok") {
+      reply.code(503);
+    }
+
+    return {
+      status: overallStatus,
+      timestamp: new Date().toISOString(),
+      checks,
+      system: systemInfo,
+    };
   }
 );
 

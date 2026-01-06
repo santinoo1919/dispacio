@@ -15,12 +15,16 @@ export const UuidParamSchema = z.object({
   id: z.string().uuid(),
 });
 
-// Health check response
+// Health check response (flexible for different health endpoints)
 export const HealthResponseSchema = z.object({
   status: z.string(),
-  database: z.string(),
   timestamp: z.string().optional(),
+  ready: z.boolean().optional(),
+  checks: z.record(z.any()).optional(), // Flexible object for various checks
+  system: z.record(z.any()).optional(), // System info
   error: z.string().optional(),
+  // Legacy fields for backwards compatibility
+  database: z.string().optional(),
 });
 
 // Helper to clean schema (remove $schema property that Fastify doesn't like)
