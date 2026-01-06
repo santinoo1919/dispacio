@@ -3,9 +3,8 @@
  * Converts between backend API format and frontend format
  */
 
-import { DRIVERS, getBackendDriverId } from "@/lib/data/drivers";
-import { assignDriverToZone as apiAssignDriverToZone } from "@/lib/services/api";
-import { Zone, Order } from "@/lib/types";
+import { DRIVERS } from "@/lib/data/drivers";
+import { Order, Zone } from "@/lib/types";
 import { findNearestDriver } from "@/lib/utils/distance";
 
 /**
@@ -16,7 +15,7 @@ export interface ApiZone {
   name: string;
   center: { lat: number; lng: number };
   radius?: number | null;
-  orders: Array<{ id: string; [key: string]: any }>;
+  orders: { id: string; [key: string]: any }[];
   orderCount?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -27,11 +26,13 @@ export interface ApiZone {
  * @param apiZone Backend zone data
  * @param orders Frontend orders array (to populate zone.orders)
  * @param autoAssignDriver If true, automatically assign driver by geographic proximity if not already assigned
+ * @param drivers Optional array of drivers from API (if not provided, uses hardcoded fallback)
  */
 export function transformZone(
   apiZone: ApiZone,
   orders: Order[],
-  autoAssignDriver: boolean = true
+  autoAssignDriver: boolean = true,
+  drivers?: { id: string; location?: { lat: number; lng: number } | null }[]
 ): Zone {
   // Get orders for this zone from our orders array
   const zoneOrders = orders.filter((o) =>
@@ -39,22 +40,27 @@ export function transformZone(
   );
 
   // Determine assigned driver (from orders or geographic matching)
-  const driverIds = new Set(
-    zoneOrders.map((o) => o.driverId).filter(Boolean)
-  );
+  const driverIds = new Set(zoneOrders.map((o) => o.driverId).filter(Boolean));
   let assignedDriverId: string | undefined;
-  
+
   if (driverIds.size === 1) {
     // All orders have same driver
     assignedDriverId = Array.from(driverIds)[0];
   } else if (autoAssignDriver) {
     // Use geographic matching for UI display only
-    // Don't sync to backend - drivers must be created via Drivers API first
-    const nearestDriverId = findNearestDriver(apiZone.center, DRIVERS);
-    if (nearestDriverId) {
-      assignedDriverId = nearestDriverId;
-      // TODO: Once Drivers API exists, sync assignment to backend
-      // apiAssignDriverToZone(apiZone.id, backendDriverId).catch(() => {});
+    // Prefer API drivers, fallback to hardcoded for backward compatibility
+    const driversToUse = drivers
+      ? drivers
+          .filter((d) => d.location != null)
+          .map((d) => ({ id: d.id, location: d.location! }))
+      : DRIVERS;
+    if (driversToUse.length > 0) {
+      const nearestDriverId = findNearestDriver(apiZone.center, driversToUse);
+      if (nearestDriverId) {
+        assignedDriverId = nearestDriverId;
+        // TODO: Sync assignment to backend using Drivers API
+        // apiAssignDriverToZone(apiZone.id, backendDriverId).catch(() => {});
+      }
     }
   }
 
@@ -67,4 +73,3 @@ export function transformZone(
     assignedDriverId,
   };
 }
-

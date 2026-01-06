@@ -316,3 +316,119 @@ export async function assignDriverToZone(
     body: JSON.stringify({ driverId }),
   });
 }
+
+/**
+ * Driver-related API functions
+ */
+
+export interface ApiDriver {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  initials?: string | null;
+  color?: string | null;
+  location?: { lat: number; lng: number } | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at?: string | null;
+}
+
+export interface CreateDriverRequest {
+  name: string;
+  phone: string;
+  email?: string;
+  initials?: string;
+  color?: string;
+  location?: { lat: number; lng: number };
+  is_active?: boolean;
+}
+
+export interface UpdateDriverRequest {
+  name?: string;
+  phone?: string;
+  email?: string;
+  initials?: string;
+  color?: string;
+  location?: { lat: number; lng: number };
+  is_active?: boolean;
+}
+
+export interface GetDriversResponse {
+  drivers: ApiDriver[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+/**
+ * Get all drivers
+ * @param is_active Optional filter for active drivers only
+ * @param limit Pagination limit
+ * @param offset Pagination offset
+ */
+export async function fetchDrivers(
+  options?: {
+    is_active?: boolean;
+    limit?: number;
+    offset?: number;
+  }
+): Promise<GetDriversResponse> {
+  const params = new URLSearchParams();
+  if (options?.is_active !== undefined) {
+    params.append("is_active", String(options.is_active));
+  }
+  if (options?.limit) params.append("limit", String(options.limit));
+  if (options?.offset) params.append("offset", String(options.offset));
+
+  const query = params.toString();
+  return apiRequest(`/api/drivers${query ? `?${query}` : ""}`);
+}
+
+/**
+ * Get a single driver by ID
+ * @param driverId Driver UUID
+ */
+export async function fetchDriver(driverId: string): Promise<ApiDriver> {
+  return apiRequest(`/api/drivers/${driverId}`);
+}
+
+/**
+ * Create a new driver
+ * @param driver Driver data
+ */
+export async function createDriver(
+  driver: CreateDriverRequest
+): Promise<ApiDriver> {
+  return apiRequest("/api/drivers", {
+    method: "POST",
+    body: JSON.stringify(driver),
+  });
+}
+
+/**
+ * Update a driver
+ * @param driverId Driver UUID
+ * @param updates Partial driver data to update
+ */
+export async function updateDriver(
+  driverId: string,
+  updates: UpdateDriverRequest
+): Promise<ApiDriver> {
+  return apiRequest(`/api/drivers/${driverId}`, {
+    method: "PUT",
+    body: JSON.stringify(updates),
+  });
+}
+
+/**
+ * Delete a driver
+ * @param driverId Driver UUID
+ */
+export async function deleteDriver(
+  driverId: string
+): Promise<{ success: boolean; id: string }> {
+  return apiRequest(`/api/drivers/${driverId}`, {
+    method: "DELETE",
+  });
+}
