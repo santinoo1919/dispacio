@@ -9,6 +9,7 @@ import { registerDatabase, runMigrations } from "./db/connection.js";
 import optimizeRoutes from "./routes/optimize.js";
 import ordersRoutes from "./routes/orders.js";
 import zonesRoutes from "./routes/zones.js";
+import driversRoutes from "./routes/drivers.js";
 
 // Custom plugins
 import errorHandler from "./plugins/error-handler.js";
@@ -105,6 +106,7 @@ await fastify.register(swagger, {
       { name: "orders", description: "Order management endpoints" },
       { name: "routes", description: "Route optimization endpoints" },
       { name: "zones", description: "Zone management endpoints" },
+      { name: "drivers", description: "Driver management endpoints" },
       { name: "health", description: "Health check endpoints" },
     ],
     components: {
@@ -146,6 +148,7 @@ if (process.env.RUN_MIGRATIONS !== "false") {
 await fastify.register(ordersRoutes, { prefix: "/api/orders" });
 await fastify.register(optimizeRoutes, { prefix: "/api/routes" });
 await fastify.register(zonesRoutes, { prefix: "/api/zones" });
+await fastify.register(driversRoutes, { prefix: "/api/drivers" });
 
 // ============================================
 // Health Check Endpoints (Kubernetes-style)
