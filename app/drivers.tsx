@@ -11,6 +11,7 @@ import {
   useUpdateDriver,
 } from "@/hooks/use-drivers";
 import { Ionicons } from "@expo/vector-icons";
+import { Stack } from "expo-router";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -35,9 +36,7 @@ export default function DriversScreen() {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
-    email: "",
-    locationLat: "",
-    locationLng: "",
+    locationName: "",
   });
 
   const handleSave = async () => {
@@ -49,14 +48,8 @@ export default function DriversScreen() {
     const driverData = {
       name: formData.name,
       phone: formData.phone,
-      email: formData.email || undefined,
-      location:
-        formData.locationLat && formData.locationLng
-          ? {
-              lat: parseFloat(formData.locationLat),
-              lng: parseFloat(formData.locationLng),
-            }
-          : undefined,
+      // Store location name in email field for now (will be proper field later)
+      email: formData.locationName || undefined,
     };
 
     if (editingId) {
@@ -74,9 +67,7 @@ export default function DriversScreen() {
     setFormData({
       name: "",
       phone: "",
-      email: "",
-      locationLat: "",
-      locationLng: "",
+      locationName: "",
     });
   };
 
@@ -100,9 +91,7 @@ export default function DriversScreen() {
     setFormData({
       name: driver.name,
       phone: driver.phone,
-      email: driver.email || "",
-      locationLat: driver.location?.lat?.toString() || "",
-      locationLng: driver.location?.lng?.toString() || "",
+      locationName: driver.email || "",
     });
     setShowAddForm(true);
   };
@@ -113,14 +102,13 @@ export default function DriversScreen() {
     setFormData({
       name: "",
       phone: "",
-      email: "",
-      locationLat: "",
-      locationLng: "",
+      locationName: "",
     });
   };
 
   return (
     <View className="flex-1 bg-background">
+      <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
         title="Drivers"
         rightContent={
@@ -170,37 +158,12 @@ export default function DriversScreen() {
               />
 
               <TextInput
-                placeholder="Email (optional)"
+                placeholder="Location Name (optional)"
                 placeholderTextColor="#71717A"
-                value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                value={formData.locationName}
+                onChangeText={(text) => setFormData({ ...formData, locationName: text })}
                 className="bg-background px-3 py-2 rounded-lg border border-border text-text mb-3"
               />
-
-              <View className="flex-row gap-2 mb-3">
-                <TextInput
-                  placeholder="Latitude"
-                  placeholderTextColor="#71717A"
-                  value={formData.locationLat}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, locationLat: text })
-                  }
-                  keyboardType="decimal-pad"
-                  className="flex-1 bg-background px-3 py-2 rounded-lg border border-border text-text"
-                />
-                <TextInput
-                  placeholder="Longitude"
-                  placeholderTextColor="#71717A"
-                  value={formData.locationLng}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, locationLng: text })
-                  }
-                  keyboardType="decimal-pad"
-                  className="flex-1 bg-background px-3 py-2 rounded-lg border border-border text-text"
-                />
-              </View>
 
               <View className="flex-row gap-2">
                 <Pressable
@@ -239,12 +202,7 @@ export default function DriversScreen() {
                     <Text className="text-text-secondary mt-1">{item.phone}</Text>
                     {item.email && (
                       <Text className="text-text-secondary text-sm mt-1">
-                        {item.email}
-                      </Text>
-                    )}
-                    {item.location && (
-                      <Text className="text-text-secondary text-sm mt-1">
-                        📍 {item.location.lat.toFixed(4)}, {item.location.lng.toFixed(4)}
+                        📍 {item.email}
                       </Text>
                     )}
                     {item.initials && (
