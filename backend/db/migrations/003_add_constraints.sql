@@ -93,6 +93,31 @@ END $$;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
 
 -- ============================================
+-- TRIP/ZONE CONSTRAINTS (Per-Driver Trips)
+-- ============================================
+
+-- Add driver_id to zones (trips are per-driver)
+ALTER TABLE zones ADD COLUMN IF NOT EXISTS driver_id UUID REFERENCES drivers(id);
+
+-- Add trip_date for daily trip organization
+ALTER TABLE zones ADD COLUMN IF NOT EXISTS trip_date DATE DEFAULT CURRENT_DATE;
+
+-- Unique constraint: same trip name per driver per day is not allowed
+-- (Driver A can have "Trip 1" today AND tomorrow, but not two "Trip 1" today)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'unique_trip_per_driver_per_day'
+  ) THEN
+    ALTER TABLE zones ADD CONSTRAINT unique_trip_per_driver_per_day 
+      UNIQUE (name, driver_id, trip_date);
+  END IF;
+END $$;
+
+-- Index for fast lookup: "get all trips for driver X on date Y"
+CREATE INDEX IF NOT EXISTS idx_zones_driver_date ON zones(driver_id, trip_date);
+
+-- ============================================
 -- VEHICLE CONSTRAINTS
 -- ============================================
 
