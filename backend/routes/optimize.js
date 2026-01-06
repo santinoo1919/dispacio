@@ -54,7 +54,9 @@ export default async function optimizeRoutes(fastify, options) {
 
         // 2. Fetch orders for driver
         let ordersResult;
-        if (orderIds && orderIds.length > 0) {
+        const shouldAssignDriver = orderIds && orderIds.length > 0;
+
+        if (shouldAssignDriver) {
           // Optimize specific orders (don't require driver_id match - will assign during optimization)
           ordersResult = await fastify.pg.query(
             `SELECT * FROM orders 
@@ -62,14 +64,7 @@ export default async function optimizeRoutes(fastify, options) {
            ORDER BY route_rank NULLS LAST, created_at`,
             [orderIds]
           );
-
-          // Assign driver to these orders if not already assigned
-          await fastify.pg.query(
-            `UPDATE orders 
-           SET driver_id = $1, updated_at = NOW()
-           WHERE id = ANY($2::uuid[]) AND (driver_id IS NULL OR driver_id != $1)`,
-            [driverId, orderIds]
-          );
+          // Driver assignment moved to transaction below
         } else {
           // Optimize all orders for driver
           ordersResult = await fastify.pg.query(
@@ -137,10 +132,20 @@ export default async function optimizeRoutes(fastify, options) {
           ordersWithCoords
         );
 
-        // 7. Update order ranks in database
+        // 7. Update order ranks in database (all writes in one transaction)
         const client = await fastify.pg.connect();
         try {
           await client.query("BEGIN");
+
+          // Assign driver to orders if specific orderIds were provided
+          if (shouldAssignDriver) {
+            await client.query(
+              `UPDATE orders 
+               SET driver_id = $1, updated_at = NOW()
+               WHERE id = ANY($2::uuid[]) AND (driver_id IS NULL OR driver_id != $1)`,
+              [driverId, orderIds]
+            );
+          }
 
           // Update ranks for optimized orders
           for (const optimizedOrder of optimizedRoute.orders) {

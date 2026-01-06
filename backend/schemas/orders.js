@@ -24,6 +24,7 @@ export const OrderSchema = z.object({
   longitude: z.number().nullable(),
   driver_id: z.string().uuid().nullable(),
   route_rank: z.number().int().nullable(),
+  version: z.number().int().default(1), // Optimistic locking
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
   raw_data: z.any().nullable(),
@@ -81,6 +82,7 @@ export const UpdateOrderBodySchema = z.object({
   longitude: z.coerce.number().optional(),
   driver_id: z.string().uuid().optional(),
   route_rank: z.number().int().optional(),
+  version: z.number().int().optional(), // Optimistic locking: pass current version to detect conflicts
 });
 
 // Response schemas

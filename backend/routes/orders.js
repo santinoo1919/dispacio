@@ -302,7 +302,7 @@ export default async function ordersRoutes(fastify, options) {
 
   /**
    * PUT /api/orders/:id
-   * Update order
+   * Update order with optimistic locking
    */
   fastify.put(
     "/:id",
@@ -310,13 +310,15 @@ export default async function ordersRoutes(fastify, options) {
       schema: {
         tags: ["orders"],
         summary: "Update order",
-        description: "Update an existing order by ID",
+        description:
+          "Update an existing order by ID. Supports optimistic locking via version field to prevent lost updates.",
         params: commonSchemas.UuidParam,
         body: orderSchemas.UpdateOrderBody,
         response: {
           200: orderSchemas.Order,
           400: commonSchemas.Error,
           404: commonSchemas.Error,
+          409: commonSchemas.Error, // Conflict - version mismatch
           500: commonSchemas.Error,
         },
       },
@@ -324,7 +326,7 @@ export default async function ordersRoutes(fastify, options) {
     async (request, reply) => {
       // Both params and body are already validated!
       const { id } = request.params;
-      const updates = request.body;
+      const { version, ...updates } = request.body;
 
       try {
         // Build dynamic update query
@@ -363,18 +365,46 @@ export default async function ordersRoutes(fastify, options) {
           return reply.code(400).send({ error: "No valid fields to update" });
         }
 
-        // Add updated_at
+        // Add updated_at and increment version
         fields.push(`updated_at = NOW()`);
+        fields.push(`version = version + 1`);
+
+        // Build WHERE clause with optimistic locking
         values.push(id);
-        paramIndex++;
+        const idParam = paramIndex++;
+
+        let whereClause = `id = $${idParam}`;
+
+        // If version provided, add optimistic lock check
+        if (version !== undefined) {
+          values.push(version);
+          const versionParam = paramIndex++;
+          whereClause += ` AND version = $${versionParam}`;
+        }
 
         const query = `UPDATE orders SET ${fields.join(
           ", "
-        )} WHERE id = $${paramIndex} RETURNING *`;
+        )} WHERE ${whereClause} RETURNING *`;
         const result = await fastify.pg.query(query, values);
 
         if (result.rows.length === 0) {
-          return reply.code(404).send({ error: "Order not found" });
+          // Check if order exists to differentiate 404 vs 409
+          const existsResult = await fastify.pg.query(
+            "SELECT id, version FROM orders WHERE id = $1",
+            [id]
+          );
+
+          if (existsResult.rows.length === 0) {
+            return reply.code(404).send({ error: "Order not found" });
+          }
+
+          // Order exists but version mismatch = conflict
+          return reply.code(409).send({
+            error: "Conflict",
+            message:
+              "Order was modified by another user. Please refresh and try again.",
+            currentVersion: existsResult.rows[0].version,
+          });
         }
 
         return result.rows[0];

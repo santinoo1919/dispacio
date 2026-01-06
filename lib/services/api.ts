@@ -27,6 +27,7 @@ export interface Order {
   longitude?: number;
   driver_id?: string;
   route_rank?: number;
+  version?: number; // Optimistic locking
   created_at?: string;
   updated_at?: string;
   raw_data?: any;
@@ -50,6 +51,7 @@ export interface CreateOrderRequest {
   longitude?: number;
   driver_id?: string;
   route_rank?: number;
+  version?: number; // For optimistic locking on updates
   rawData?: Record<string, any>;
 }
 
@@ -69,6 +71,21 @@ export interface OptimizeRouteResponse {
 export interface ApiError {
   error: string;
   message?: string;
+}
+
+export interface ConflictError extends ApiError {
+  currentVersion: number;
+}
+
+/**
+ * Check if error is a version conflict (409)
+ */
+export function isConflictError(error: unknown): error is Error & { status: 409; data: ConflictError } {
+  return (
+    error instanceof Error &&
+    (error as any).status === 409 &&
+    (error as any).data?.error === "Conflict"
+  );
 }
 
 /**

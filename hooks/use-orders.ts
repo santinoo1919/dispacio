@@ -10,6 +10,7 @@ import {
   deleteOrder,
   fetchOrder,
   fetchOrders,
+  isConflictError,
   updateOrder,
 } from "@/lib/services/api";
 import { transformOrder } from "@/lib/transformers/orders";
@@ -80,7 +81,7 @@ export function useCreateOrders() {
 }
 
 /**
- * Update a single order
+ * Update a single order with optimistic locking support
  */
 export function useUpdateOrder() {
   const queryClient = useQueryClient();
@@ -104,6 +105,18 @@ export function useUpdateOrder() {
       queryClient.invalidateQueries({ queryKey: ["zones"] });
     },
     onError: (error) => {
+      // Handle version conflict specifically
+      if (isConflictError(error)) {
+        showToast.error(
+          "Conflict Detected",
+          "This order was modified by someone else. Refreshing data..."
+        );
+        // Invalidate to refetch latest data
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+        queryClient.invalidateQueries({ queryKey: ["zones"] });
+        return;
+      }
+
       showToast.error(
         "Update Error",
         error instanceof Error ? error.message : "Failed to update order"
