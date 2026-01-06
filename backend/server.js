@@ -37,6 +37,37 @@ await fastify.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
+// Rate limiting - protect against abuse and control costs
+import rateLimit from "@fastify/rate-limit";
+await fastify.register(rateLimit, {
+  global: true, // Apply to all routes by default
+  max: isDevelopment ? 1000 : 100, // Requests per window (relaxed in dev)
+  timeWindow: "1 minute",
+  
+  // Identify requester by IP
+  keyGenerator: (request) => {
+    // Use X-Forwarded-For if behind proxy (e.g., Cloudflare, nginx)
+    return request.headers["x-forwarded-for"]?.split(",")[0] || request.ip;
+  },
+  
+  // Custom error response
+  errorResponseBuilder: (request, context) => ({
+    statusCode: 429,
+    error: "Too Many Requests",
+    message: `Rate limit exceeded. You can make ${context.max} requests per ${context.after}. Try again in ${context.after}.`,
+    retryAfter: context.after,
+  }),
+  
+  // Add headers to show rate limit status
+  addHeaders: {
+    "x-ratelimit-limit": true,
+    "x-ratelimit-remaining": true,
+    "x-ratelimit-reset": true,
+    "retry-after": true,
+  },
+});
+fastify.log.info(`Rate limiting enabled: ${isDevelopment ? 1000 : 100} requests/minute`);
+
 // Swagger/OpenAPI documentation
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";

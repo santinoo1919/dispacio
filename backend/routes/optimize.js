@@ -34,6 +34,13 @@ export default async function optimizeRoutes(fastify, options) {
           503: commonSchemas.Error,
         },
       },
+      // Stricter rate limit for CPU-intensive optimization
+      config: {
+        rateLimit: {
+          max: 20, // Only 20 optimizations per minute (CPU intensive)
+          timeWindow: "1 minute",
+        },
+      },
     },
     async (request, reply) => {
       // request.body is already validated by Fastify!

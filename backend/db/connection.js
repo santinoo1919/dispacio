@@ -19,9 +19,12 @@ export async function registerDatabase(fastify) {
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    // Query protection - kill slow queries to prevent resource hogging
+    query_timeout: 30000, // 30 seconds max per query
+    statement_timeout: 30000, // PostgreSQL-level timeout
   });
 
-  fastify.log.info("PostgreSQL connection pool initialized");
+  fastify.log.info("PostgreSQL connection pool initialized (30s query timeout)");
 }
 
 /**

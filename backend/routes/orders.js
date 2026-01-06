@@ -131,6 +131,13 @@ export default async function ordersRoutes(fastify, options) {
           500: commonSchemas.Error,
         },
       },
+      // Stricter rate limit for bulk operations
+      config: {
+        rateLimit: {
+          max: 10, // Only 10 bulk uploads per minute
+          timeWindow: "1 minute",
+        },
+      },
     },
     async (request, reply) => {
       // request.body.orders is already validated by Fastify!
