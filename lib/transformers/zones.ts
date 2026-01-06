@@ -48,13 +48,13 @@ export function transformZone(
     // All orders have same driver
     assignedDriverId = Array.from(driverIds)[0];
   } else if (autoAssignDriver) {
-    // Use geographic matching
+    // Use geographic matching for UI display only
+    // Don't sync to backend - drivers must be created via Drivers API first
     const nearestDriverId = findNearestDriver(apiZone.center, DRIVERS);
-    const backendDriverId = getBackendDriverId(nearestDriverId);
-    if (backendDriverId) {
+    if (nearestDriverId) {
       assignedDriverId = nearestDriverId;
-      // Sync to backend (fire and forget)
-      apiAssignDriverToZone(apiZone.id, backendDriverId).catch(() => {});
+      // TODO: Once Drivers API exists, sync assignment to backend
+      // apiAssignDriverToZone(apiZone.id, backendDriverId).catch(() => {});
     }
   }
 
