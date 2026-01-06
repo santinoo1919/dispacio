@@ -3,6 +3,7 @@
  * List, create, edit, and delete drivers
  */
 
+import { DriverCard } from "@/components/dispatch/driver-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import {
   useCreateDriver,
@@ -192,44 +193,14 @@ export default function DriversScreen() {
           <FlatList
             data={drivers || []}
             keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View className="mx-4 mt-2 p-4 bg-background-secondary rounded-lg border border-border">
-                <View className="flex-row justify-between items-start">
-                  <View className="flex-1">
-                    <Text className="text-text font-semibold text-lg">
-                      {item.name}
-                    </Text>
-                    <Text className="text-text-secondary mt-1">{item.phone}</Text>
-                    {item.email && (
-                      <Text className="text-text-secondary text-sm mt-1">
-                        📍 {item.email}
-                      </Text>
-                    )}
-                    {item.initials && (
-                      <View className="mt-2">
-                        <View className="bg-accent-500 w-8 h-8 rounded-full items-center justify-center">
-                          <Text className="text-white font-semibold text-xs">
-                            {item.initials}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                  <View className="flex-row gap-2">
-                    <Pressable
-                      onPress={() => startEdit(item)}
-                      className="p-2 active:bg-background-tertiary rounded-lg"
-                    >
-                      <Ionicons name="pencil" size={20} color="#71717A" />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => handleDelete(item.id, item.name)}
-                      className="p-2 active:bg-background-tertiary rounded-lg"
-                    >
-                      <Ionicons name="trash" size={20} color="#EF4444" />
-                    </Pressable>
-                  </View>
-                </View>
+            renderItem={({ item, index }) => (
+              <View className="mx-4 mt-2">
+                <DriverCard
+                  driver={item}
+                  index={index}
+                  onEdit={() => startEdit(item)}
+                  onDelete={() => handleDelete(item.id, item.name)}
+                />
               </View>
             )}
             contentContainerStyle={{ paddingBottom: 16 }}
