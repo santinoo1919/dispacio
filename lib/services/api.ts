@@ -3,9 +3,14 @@
  * HTTP client for calling Fastify backend endpoints
  */
 
-// API base URL - set EXPO_PUBLIC_API_URL in .env or use default
-// For local development: http://localhost:3000
-// For physical device: http://<your-computer-ip>:3000
+// API base URL Configuration
+// 
+// Set via environment variable EXPO_PUBLIC_API_URL:
+// - Local dev (simulator):  http://localhost:3000
+// - Local dev (device):     http://<your-computer-ip>:3000
+// - Production:             https://dispacio-production.up.railway.app
+//
+// Create .env.local for local overrides (gitignored)
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
 export interface Order {
