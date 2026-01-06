@@ -1,5 +1,5 @@
 # Production Dockerfile for Fastify Backend
-# Using full Node image (not alpine) for native module compilation
+# Using full Node image for native module compilation
 FROM node:20-bookworm-slim
 
 # Install build dependencies for native modules (node_or_tools)
@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     make \
     g++ \
     wget \
+    curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
