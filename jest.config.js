@@ -12,7 +12,8 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.test.json'
-    }]
+    }],
+    '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
   },
   
   // Module path mapping to match tsconfig
@@ -31,7 +32,7 @@ module.exports = {
   
   // Don't transform node_modules except for specific packages that need it
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$|papaparse))'
+    'node_modules/(?!(supercluster|kdbush|papaparse|.*\\.mjs$))'
   ],
   
   // Setup files
