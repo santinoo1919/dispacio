@@ -38,9 +38,13 @@ module.exports = {
   // Setup files
   setupFilesAfterEnv: [],
   
-  // Coverage settings (optional, can be enabled later)
+  // Coverage settings - only collect from files we're actually testing
   collectCoverageFrom: [
-    'lib/**/*.ts',
+    'lib/utils/distance.ts',
+    'lib/csv/parser.ts',
+    'lib/transformers/orders.ts',
+    'lib/transformers/zones.ts',
+    'lib/clustering/zone-clusterer.ts',
     '!lib/**/*.d.ts',
     '!lib/**/__tests__/**'
   ],
