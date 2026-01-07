@@ -53,7 +53,7 @@ export function generateWhatsAppMessage(
     return `📦 No orders assigned to ${driver.name}`;
   }
 
-  const sortedOrders = [...orders].sort((a, b) => a.rank - b.rank);
+  const sortedOrders = [...orders].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
   const parts: string[] = [];
   parts.push(`📦 Dispatch Route - ${driver.name}\n`);
   parts.push(""); // Extra space after header

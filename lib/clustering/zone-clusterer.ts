@@ -119,7 +119,7 @@ export class ZoneClusterer {
       if (cluster.properties && (cluster.properties as any).cluster) {
         const clusterId = (cluster.properties as any).cluster_id;
         const leaves = this.clusterer.getLeaves(clusterId, Infinity);
-        const zoneOrders = leaves.map((leaf) => leaf.properties.order);
+        const zoneOrders = leaves.map((leaf: ClusterFeature) => leaf.properties.order);
         const zoneId = `Zone ${zoneNumber++}`;
 
         return {

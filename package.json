@@ -55,6 +55,7 @@
   "devDependencies": {
     "@types/papaparse": "^5.3.16",
     "@types/react": "~19.1.0",
+    "@types/supercluster": "^7.1.5",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
