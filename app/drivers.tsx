@@ -12,8 +12,7 @@ import {
   useUpdateDriver,
 } from "@/hooks/use-drivers";
 import { Ionicons } from "@expo/vector-icons";
-import { Stack } from "expo-router";
-import { useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -126,13 +125,16 @@ export default function DriversScreen() {
       ) : (
         <>
           {!showAddForm && (
-            <Pressable
-              onPress={() => setShowAddForm(true)}
-              className="mx-4 mt-4 bg-accent-500 px-4 py-3 rounded-lg active:bg-accent-600 flex-row items-center justify-center gap-2"
-            >
-              <Ionicons name="add" size={20} color="white" />
-              <Text className="text-white font-semibold">Add Driver</Text>
-            </Pressable>
+            <View className="px-4 pt-4">
+              <Pressable
+                onPress={() => setShowAddForm(true)}
+                className="bg-background-secondary px-4 py-2 rounded-lg active:bg-background-tertiary border border-border"
+              >
+                <Text className="text-text-secondary font-medium text-sm">
+                  Add Driver
+                </Text>
+              </Pressable>
+            </View>
           )}
 
           {showAddForm && (
@@ -145,7 +147,9 @@ export default function DriversScreen() {
                 placeholder="Name *"
                 placeholderTextColor="#71717A"
                 value={formData.name}
-                onChangeText={(text) => setFormData({ ...formData, name: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, name: text })
+                }
                 className="bg-background px-3 py-2 rounded-lg border border-border text-text mb-3"
               />
 
@@ -153,7 +157,9 @@ export default function DriversScreen() {
                 placeholder="Phone *"
                 placeholderTextColor="#71717A"
                 value={formData.phone}
-                onChangeText={(text) => setFormData({ ...formData, phone: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, phone: text })
+                }
                 keyboardType="phone-pad"
                 className="bg-background px-3 py-2 rounded-lg border border-border text-text mb-3"
               />
@@ -162,7 +168,9 @@ export default function DriversScreen() {
                 placeholder="Location Name (optional)"
                 placeholderTextColor="#71717A"
                 value={formData.locationName}
-                onChangeText={(text) => setFormData({ ...formData, locationName: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, locationName: text })
+                }
                 className="bg-background px-3 py-2 rounded-lg border border-border text-text mb-3"
               />
 
@@ -193,16 +201,20 @@ export default function DriversScreen() {
           <FlatList
             data={drivers || []}
             keyExtractor={(item) => item.id}
-            renderItem={({ item, index }) => (
-              <View className="mx-4 mt-2">
-                <DriverCard
-                  driver={item}
-                  index={index}
-                  onEdit={() => startEdit(item)}
-                  onDelete={() => handleDelete(item.id, item.name)}
-                />
-              </View>
-            )}
+            renderItem={({ item, index }) => {
+              const isLast = index === (drivers?.length || 0) - 1;
+              return (
+                <View>
+                  <DriverCard
+                    driver={item}
+                    index={index}
+                    onEdit={() => startEdit(item)}
+                    onDelete={() => handleDelete(item.id, item.name)}
+                  />
+                  {!isLast && <View className="h-px bg-border w-full" />}
+                </View>
+              );
+            }}
             contentContainerStyle={{ paddingBottom: 16 }}
             ListEmptyComponent={
               <View className="items-center justify-center p-8 mt-8">
@@ -218,4 +230,3 @@ export default function DriversScreen() {
     </View>
   );
 }
-
