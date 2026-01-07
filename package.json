@@ -11,7 +11,7 @@
     "lint": "expo lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:ci": "jest --ci --coverage=false"
+    "test:ci": "jest --ci --coverage"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
