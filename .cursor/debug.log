@@ -1,0 +1,20 @@
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766487907969,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766488002518,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766488147830,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766488176647,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"routes/auth.js:45","message":"Before BetterAuth handler","data":{"method":"POST","url":"/api/auth/sign-up/email","body":{"email":"test@example.com","password":"test123456","name":"Test User"}},"timestamp":1766488179341,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"routes/auth.js:49","message":"After BetterAuth handler","data":{"status":500},"timestamp":1766488179413,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766488281451,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"routes/auth.js:45","message":"Before BetterAuth handler","data":{"method":"POST","url":"/api/auth/sign-up/email","body":{"email":"test5@example.com","password":"test123456","name":"Test User"}},"timestamp":1766488283147,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"routes/auth.js:49","message":"After BetterAuth handler","data":{"status":422},"timestamp":1766488283550,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766488619881,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"routes/auth.js:45","message":"Before BetterAuth handler","data":{"method":"POST","url":"/api/auth/sign-up/email","body":{"email":"test8@example.com","password":"test123456","name":"Test User"}},"timestamp":1766488622361,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"routes/auth.js:49","message":"After BetterAuth handler","data":{"status":422},"timestamp":1766488622845,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766488658461,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"routes/auth.js:45","message":"Before BetterAuth handler","data":{"method":"POST","url":"/api/auth/sign-up/email","body":{"email":"test9@example.com","password":"test123456","name":"Test User"}},"timestamp":1766488661019,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"routes/auth.js:49","message":"After BetterAuth handler","data":{"status":500},"timestamp":1766488661060,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"auth/auth.js:49","message":"Adapter created","data":{"provider":"postgresql"},"timestamp":1766488878332,"sessionId":"debug-session","runId":"run1","hypothesisId":"B"}
+{"location":"routes/auth.js:45","message":"Before BetterAuth handler","data":{"method":"GET","url":"/api/auth/get-session"},"timestamp":1766488961596,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"routes/auth.js:49","message":"After BetterAuth handler","data":{"status":200},"timestamp":1766488961748,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"routes/auth.js:45","message":"Before BetterAuth handler","data":{"method":"GET","url":"/api/auth/get-session"},"timestamp":1766488962840,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}
+{"location":"routes/auth.js:49","message":"After BetterAuth handler","data":{"status":200},"timestamp":1766488962857,"sessionId":"debug-session","runId":"run1","hypothesisId":"A"}

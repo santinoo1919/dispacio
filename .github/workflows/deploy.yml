@@ -1,0 +1,77 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch: # Allow manual deployment
+
+jobs:
+  # Run tests first before deployment
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Setup Node.js for backend
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Check backend syntax
+        working-directory: ./backend
+        run: node --check server.js
+
+  # Option 1: Let Railway auto-deploy (simplest)
+  # Railway will automatically deploy when you push to main/master
+  # No GitHub Actions needed for deployment, just tests above
+  
+  # Option 2: Trigger Railway deployment via API (if you want more control)
+  deploy-railway:
+    name: Deploy to Railway
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Trigger Railway deployment
+        # Railway auto-deploys from Git, but you can trigger via API if needed
+        # Uncomment and configure if you want explicit control:
+        # run: |
+        #   curl -X POST \
+        #     -H "Authorization: Bearer ${{ secrets.RAILWAY_TOKEN }}" \
+        #     -H "Content-Type: application/json" \
+        #     https://api.railway.app/v1/deployments \
+        #     -d '{"serviceId": "your-service-id"}'
+        run: |
+          echo "✅ Tests passed! Railway will auto-deploy from Git push."
+          echo "If Railway is connected to this repo, deployment should start automatically."
+

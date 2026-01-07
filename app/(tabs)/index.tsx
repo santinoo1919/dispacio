@@ -2,6 +2,7 @@ import { EmptyState } from "@/components/dispatch/empty-state";
 import { ZoneCard } from "@/components/dispatch/zone-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { useZones } from "@/hooks/use-zones";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";
 
@@ -22,16 +23,24 @@ export default function DispatchScreen() {
       <ScreenHeader
         title="Dispatch"
         rightContent={
-          orders.length > 0 && (
+          <View className="flex-row items-center gap-3">
             <Pressable
-              onPress={() => router.push("/paste-csv")}
-              className="bg-background-secondary px-4 py-2 rounded-lg active:bg-background-tertiary border border-border"
+              onPress={() => router.push("/drivers")}
+              className="p-2 active:bg-background-tertiary rounded-lg"
             >
-              <Text className="text-text-secondary font-medium text-sm">
-                Import New
-              </Text>
+              <Ionicons name="settings-outline" size={24} color="#71717A" />
             </Pressable>
-          )
+            {orders.length > 0 && (
+              <Pressable
+                onPress={() => router.push("/paste-csv")}
+                className="bg-background-secondary px-4 py-2 rounded-lg active:bg-background-tertiary border border-border"
+              >
+                <Text className="text-text-secondary font-medium text-sm">
+                  Import New
+                </Text>
+              </Pressable>
+            )}
+          </View>
         }
       />
 
