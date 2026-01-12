@@ -11,6 +11,46 @@ import zonesRoutes from '../routes/zones.js';
 import driversRoutes from '../routes/drivers.js';
 
 /**
+ * Run migrations with pg-mem compatibility fixes
+ * Replaces DECIMAL with NUMERIC for pg-mem support
+ */
+async function runMigrationsForTests(fastify) {
+  const client = await fastify.pg.connect();
+
+  try {
+    // Read migration files
+    const fs = await import("fs");
+    const path = await import("path");
+    const { fileURLToPath } = await import("url");
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const migrationsDir = path.join(__dirname, "../db/migrations");
+    
+    // Get all migration files sorted by name
+    const migrationFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith(".sql"))
+      .sort();
+
+    // Execute each migration
+    for (const file of migrationFiles) {
+      const migrationPath = path.join(migrationsDir, file);
+      let migrationSQL = fs.readFileSync(migrationPath, "utf8");
+      
+      // Fix pg-mem compatibility: replace DECIMAL with NUMERIC
+      migrationSQL = migrationSQL.replace(/DECIMAL\((\d+),\s*(\d+)\)/gi, 'NUMERIC($1, $2)');
+      
+      await client.query(migrationSQL);
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Build a test Fastify app with in-memory database
  * Uses pg-mem - no real PostgreSQL needed!
  * @returns {Promise<FastifyInstance>}
@@ -24,7 +64,8 @@ export async function buildTestApp() {
   await registerTestDatabase(app);
   
   // Run migrations to set up schema
-  await runMigrations(app);
+  // Note: We need to modify migrations for pg-mem compatibility
+  await runMigrationsForTests(app);
 
   // Register routes
   await app.register(ordersRoutes, { prefix: '/api/orders' });
