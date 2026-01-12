@@ -24,7 +24,7 @@ export async function registerTestDatabase(fastify) {
       });
     },
   });
-
+  
   // Get pg Pool from pg-mem adapter
   const { Pool } = mem.adapters.createPg();
   const pool = new Pool();
@@ -35,7 +35,12 @@ export async function registerTestDatabase(fastify) {
     query: async (text, params) => {
       const client = await pool.connect();
       try {
-        return await client.query(text, params);
+        // Workaround: pg-mem doesn't support DECIMAL(8,2) precision syntax
+        // Replace DECIMAL with NUMERIC (pg-mem supports NUMERIC better)
+        const modifiedText = typeof text === 'string' 
+          ? text.replace(/DECIMAL\((\d+),\s*(\d+)\)/gi, 'NUMERIC($1, $2)')
+          : text;
+        return await client.query(modifiedText, params);
       } finally {
         client.release();
       }
