@@ -1,6 +1,5 @@
 export default {
-  // Support ES modules
-  extensionsToTreatAsEsm: ['.js'],
+  // Support ES modules (automatically inferred from package.json "type": "module")
   testEnvironment: 'node',
   
   // Test file patterns
