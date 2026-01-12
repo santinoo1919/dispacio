@@ -4,7 +4,6 @@
  */
 
 import { newDb } from 'pg-mem';
-import postgres from '@fastify/postgres';
 
 /**
  * Register in-memory PostgreSQL database with Fastify
@@ -26,24 +25,25 @@ export async function registerTestDatabase(fastify) {
     },
   });
 
-  // Get pg adapter from pg-mem - this provides the connection
-  const pgAdapter = mem.adapters.createPg();
+  // Get pg Pool from pg-mem adapter
+  const { Pool } = mem.adapters.createPg();
+  const pool = new Pool();
   
-  // pg-mem provides a connection string that works with pg library
-  const connectionString = pgAdapter.connectionString;
-
-  // Register with Fastify using the in-memory connection
-  await fastify.register(postgres, {
-    connectionString,
-    // Minimal pool settings for tests
-    max: 5,
-    idleTimeoutMillis: 1000,
-    connectionTimeoutMillis: 1000,
+  // Attach pg methods to Fastify (same interface as @fastify/postgres)
+  fastify.decorate('pg', {
+    connect: () => pool.connect(),
+    query: async (text, params) => {
+      const client = await pool.connect();
+      try {
+        return await client.query(text, params);
+      } finally {
+        client.release();
+      }
+    },
+    pool: pool
   });
 
-  // Store the mem database instance for potential future use
+  // Store for cleanup if needed
   fastify.pgMem = mem;
-  
-  fastify.log?.info('In-memory PostgreSQL database initialized (pg-mem)');
 }
 
