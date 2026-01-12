@@ -131,6 +131,23 @@ See `db/migrations/001_initial.sql` for schema:
 - `drivers` - Driver information
 - `vehicles` - Vehicle capacity constraints
 
+## Testing
+
+Tests use **Jest** with **pg-mem** (in-memory PostgreSQL). No database setup needed!
+
+```bash
+# Run tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# CI mode
+npm run test:ci
+```
+
+Tests are integration tests that verify Fastify routes + PostgreSQL together. See `routes/__tests__/` for examples.
+
 ## Development
 
 The server uses ES modules (`type: "module"`), so use `import` syntax.
