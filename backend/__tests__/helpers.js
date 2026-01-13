@@ -10,13 +10,24 @@ import optimizeRoutes from '../routes/optimize.js';
 import zonesRoutes from '../routes/zones.js';
 import driversRoutes from '../routes/drivers.js';
 
+// Track if migrations have been run (per process)
+// Prevents running migrations multiple times when multiple test files run
+let migrationsRun = false;
+
 /**
  * Run migrations for tests, skipping infrastructure migrations
  * Infrastructure migrations (users, permissions) are skipped as they:
  * - Are not needed for testing application logic
  * - Are run manually by DBA in production
+ * 
+ * Migrations are run only once per test process to avoid conflicts
  */
 async function runMigrationsForTests(fastify) {
+  // Skip if migrations already run (multiple test files share same DB in CI)
+  if (migrationsRun) {
+    return;
+  }
+
   const client = await fastify.pg.connect();
 
   try {
@@ -63,8 +74,12 @@ async function runMigrationsForTests(fastify) {
       }
       
       // No workarounds needed - real PostgreSQL supports everything!
+      // All migrations use IF NOT EXISTS, so safe to run multiple times
       await client.query(migrationSQL);
     }
+    
+    // Mark migrations as run
+    migrationsRun = true;
   } catch (error) {
     throw error;
   } finally {
