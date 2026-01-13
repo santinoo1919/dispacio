@@ -10,9 +10,30 @@ import optimizeRoutes from '../routes/optimize.js';
 import zonesRoutes from '../routes/zones.js';
 import driversRoutes from '../routes/drivers.js';
 
-// Track if migrations have been run (per process)
-// Prevents running migrations multiple times when multiple test files run
-let migrationsRun = false;
+/**
+ * Check if migrations have already been run by checking if main tables exist
+ * This works across Jest workers (each worker checks the shared database)
+ */
+async function areMigrationsRun(client) {
+  try {
+    // Check if main tables exist (migrations create these)
+    const result = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'orders'
+      ) AND EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'drivers'
+      ) AS tables_exist;
+    `);
+    return result.rows[0]?.tables_exist === true;
+  } catch (error) {
+    // If check fails, assume migrations not run (safer to run than skip)
+    return false;
+  }
+}
 
 /**
  * Run migrations for tests, skipping infrastructure migrations
@@ -20,17 +41,18 @@ let migrationsRun = false;
  * - Are not needed for testing application logic
  * - Are run manually by DBA in production
  * 
- * Migrations are run only once per test process to avoid conflicts
+ * Checks database state to avoid running migrations multiple times across Jest workers
  */
 async function runMigrationsForTests(fastify) {
-  // Skip if migrations already run (multiple test files share same DB in CI)
-  if (migrationsRun) {
-    return;
-  }
-
   const client = await fastify.pg.connect();
 
   try {
+    // Check if migrations already run (works across Jest workers)
+    // Multiple test files share same database in CI, so check DB state
+    if (await areMigrationsRun(client)) {
+      return; // Migrations already run by another worker
+    }
+
     // Read migration files
     const fs = await import("fs");
     const path = await import("path");
@@ -77,9 +99,6 @@ async function runMigrationsForTests(fastify) {
       // All migrations use IF NOT EXISTS, so safe to run multiple times
       await client.query(migrationSQL);
     }
-    
-    // Mark migrations as run
-    migrationsRun = true;
   } catch (error) {
     throw error;
   } finally {
