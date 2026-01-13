@@ -34,6 +34,12 @@ function convertDoBlocksToSQL(sql) {
 /**
  * Run migrations with pg-mem compatibility fixes
  * Replaces DECIMAL with NUMERIC and converts DO blocks to regular SQL
+ * 
+ * Separates schema migrations (tables, constraints) from infrastructure migrations (users, permissions)
+ * Infrastructure migrations are skipped in tests as they:
+ * - Are not needed for testing application logic
+ * - Are run manually by DBA in production
+ * - Contain features pg-mem doesn't support (GRANT, CREATE USER)
  */
 async function runMigrationsForTests(fastify) {
   const client = await fastify.pg.connect();
@@ -48,16 +54,39 @@ async function runMigrationsForTests(fastify) {
     const __dirname = path.dirname(__filename);
     const migrationsDir = path.join(__dirname, "../db/migrations");
     
+    // Infrastructure migrations (users, permissions, DBA operations)
+    // These are skipped in tests because:
+    // 1. Not needed for testing application logic
+    // 2. Run manually by DBA in production
+    // 3. pg-mem doesn't support GRANT/CREATE USER
+    const infrastructureMigrations = [
+      '004_create_app_user.sql', // User creation and permissions
+      // Add future infrastructure migrations here:
+      // '005_setup_replication.sql',
+      // '006_create_backup_user.sql',
+    ];
+    
     // Get all migration files sorted by name
     const migrationFiles = fs
       .readdirSync(migrationsDir)
       .filter((file) => file.endsWith(".sql"))
       .sort();
 
-    // Execute each migration
+    // Execute each migration (skip infrastructure migrations)
     for (const file of migrationFiles) {
+      // Skip infrastructure migrations - not needed for tests
+      if (infrastructureMigrations.includes(file)) {
+        continue;
+      }
+      
+      // Also skip if migration contains infrastructure operations
       const migrationPath = path.join(migrationsDir, file);
       let migrationSQL = fs.readFileSync(migrationPath, "utf8");
+      
+      // Skip migrations with GRANT or CREATE USER (infrastructure, not schema)
+      if (migrationSQL.includes('GRANT ') || migrationSQL.includes('CREATE USER')) {
+        continue;
+      }
       
       // Fix pg-mem compatibility: replace DECIMAL with NUMERIC
       migrationSQL = migrationSQL.replace(/DECIMAL\((\d+),\s*(\d+)\)/gi, 'NUMERIC($1, $2)');
