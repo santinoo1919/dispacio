@@ -11,8 +11,29 @@ import zonesRoutes from '../routes/zones.js';
 import driversRoutes from '../routes/drivers.js';
 
 /**
+ * Convert DO $$ ... END $$ blocks to regular SQL for pg-mem compatibility
+ * Extracts ALTER TABLE statements from PL/pgSQL blocks
+ * pg-mem doesn't support PL/pgSQL, so we convert to plain SQL
+ */
+function convertDoBlocksToSQL(sql) {
+  // Pattern to match DO $$ BEGIN ... END $$ blocks
+  // This regex captures the entire DO block and extracts the ALTER TABLE statement
+  const doBlockPattern = /DO\s+\$\$\s*BEGIN\s+IF\s+NOT\s+EXISTS\s*\([^)]+\)\s+THEN\s+((?:ALTER\s+TABLE[^;]+(?:;|\n)))\s+END\s+IF;\s*END\s+\$\$/gis;
+  
+  return sql.replace(doBlockPattern, (match, alterTable) => {
+    // Extract and clean the ALTER TABLE statement
+    // Remove extra whitespace and ensure it ends with semicolon
+    let stmt = alterTable.trim();
+    if (!stmt.endsWith(';')) {
+      stmt += ';';
+    }
+    return stmt;
+  });
+}
+
+/**
  * Run migrations with pg-mem compatibility fixes
- * Replaces DECIMAL with NUMERIC for pg-mem support
+ * Replaces DECIMAL with NUMERIC and converts DO blocks to regular SQL
  */
 async function runMigrationsForTests(fastify) {
   const client = await fastify.pg.connect();
@@ -40,6 +61,10 @@ async function runMigrationsForTests(fastify) {
       
       // Fix pg-mem compatibility: replace DECIMAL with NUMERIC
       migrationSQL = migrationSQL.replace(/DECIMAL\((\d+),\s*(\d+)\)/gi, 'NUMERIC($1, $2)');
+      
+      // Convert DO $$ ... END $$ blocks to regular SQL
+      // pg-mem doesn't support PL/pgSQL, so we extract the ALTER TABLE statements
+      migrationSQL = convertDoBlocksToSQL(migrationSQL);
       
       await client.query(migrationSQL);
     }
