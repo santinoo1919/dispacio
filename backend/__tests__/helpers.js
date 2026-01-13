@@ -145,11 +145,17 @@ export async function buildTestApp() {
 export async function cleanDatabase(app) {
   const client = await app.pg.connect();
   try {
-    // Delete in reverse order of dependencies
+    // Use TRUNCATE for faster, more reliable cleanup
+    // CASCADE ensures foreign key constraints are handled
+    // RESTART IDENTITY resets sequences (not needed for UUIDs, but good practice)
+    await client.query('TRUNCATE TABLE orders, zones, vehicles, drivers RESTART IDENTITY CASCADE');
+  } catch (error) {
+    // If TRUNCATE fails (pg-mem might not support it), fall back to DELETE
+    // Delete in reverse order of dependencies to avoid foreign key violations
     await client.query('DELETE FROM orders');
     await client.query('DELETE FROM zones');
-    await client.query('DELETE FROM drivers');
     await client.query('DELETE FROM vehicles');
+    await client.query('DELETE FROM drivers');
   } finally {
     client.release();
   }
