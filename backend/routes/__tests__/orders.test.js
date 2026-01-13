@@ -84,8 +84,15 @@ describe('Orders API', () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
+      
+      // Check for errors if creation failed
+      if (body.errors && body.errors.length > 0) {
+        console.error('Order creation errors:', body.errors);
+      }
+      
       expect(body.created).toBe(2);
       expect(body.orders).toHaveLength(2);
+      expect(body.failed).toBe(0);
     });
 
     it('should reject order without required fields', async () => {
@@ -132,10 +139,11 @@ describe('Orders API', () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
-      expect(body.orders[0].package_length).toBe('10.5');
-      expect(body.orders[0].package_width).toBe('8.0');
-      expect(body.orders[0].package_height).toBe('6.0');
-      expect(body.orders[0].package_weight).toBe('5.5');
+      // PostgreSQL NUMERIC returns numbers, not strings
+      expect(body.orders[0].package_length).toBe(10.5);
+      expect(body.orders[0].package_width).toBe(8.0);
+      expect(body.orders[0].package_height).toBe(6.0);
+      expect(body.orders[0].package_weight).toBe(5.5);
     });
   });
 
@@ -161,11 +169,17 @@ describe('Orders API', () => {
         ],
       };
 
-      await app.inject({
+      const response = await app.inject({
         method: 'POST',
         url: '/api/orders',
         payload: orderData,
       });
+
+      // Verify orders were created successfully
+      expect(response.statusCode).toBe(200);
+      const body = JSON.parse(response.body);
+      expect(body.created).toBe(2);
+      expect(body.orders).toHaveLength(2);
     });
 
     it('should get all orders', async () => {

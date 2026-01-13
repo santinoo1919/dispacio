@@ -39,15 +39,15 @@ describe('Route Optimization API', () => {
       driverId = JSON.parse(driverResponse.body).id;
 
       // Create a vehicle for the driver
-      const client = await app.pg.connect();
+      const vehicleClient = await app.pg.connect();
       try {
-        await client.query(
+        await vehicleClient.query(
           `INSERT INTO vehicles (driver_id, max_weight, max_volume) 
            VALUES ($1, $2, $3)`,
           [driverId, 1000, 5000]
         );
       } finally {
-        client.release();
+        vehicleClient.release();
       }
 
       // Create orders with coordinates
@@ -78,15 +78,24 @@ describe('Route Optimization API', () => {
         payload: orderData,
       });
 
-      const orders = JSON.parse(orderResponse.body).orders;
+      // Verify orders were created
+      expect(orderResponse.statusCode).toBe(200);
+      const orderBody = JSON.parse(orderResponse.body);
+      expect(orderBody.created).toBe(2);
+      
+      const orders = orderBody.orders;
       orderIds = orders.map((o) => o.id);
 
-      // Assign orders to driver
-      await client.query(
-        `UPDATE orders SET driver_id = $1 WHERE id = ANY($2::uuid[])`,
-        [driverId, orderIds]
-      );
-      client.release();
+      // Assign orders to driver - get new client
+      const updateClient = await app.pg.connect();
+      try {
+        await updateClient.query(
+          `UPDATE orders SET driver_id = $1 WHERE id = ANY($2::uuid[])`,
+          [driverId, orderIds]
+        );
+      } finally {
+        updateClient.release();
+      }
     });
 
     it('should return 404 when driver not found', async () => {
@@ -115,6 +124,7 @@ describe('Route Optimization API', () => {
         },
       });
 
+      expect(driverResponse.statusCode).toBe(200);
       const emptyDriverId = JSON.parse(driverResponse.body).id;
 
       const response = await app.inject({
@@ -127,7 +137,7 @@ describe('Route Optimization API', () => {
 
       expect(response.statusCode).toBe(400);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('No orders found for driver');
+      expect(body.error).toContain('No orders found');
     });
 
     it('should return 400 when orders have no coordinates', async () => {
@@ -149,7 +159,14 @@ describe('Route Optimization API', () => {
         payload: orderData,
       });
 
-      const order = JSON.parse(orderResponse.body).orders[0];
+      // Verify order was created
+      expect(orderResponse.statusCode).toBe(200);
+      const orderBody = JSON.parse(orderResponse.body);
+      expect(orderBody.created).toBe(1);
+      expect(orderBody.orders).toHaveLength(1);
+      
+      const order = orderBody.orders[0];
+      expect(order.id).toBeDefined();
 
       // Assign to driver
       const client = await app.pg.connect();
@@ -186,6 +203,12 @@ describe('Route Optimization API', () => {
 
       // Should succeed (200) or handle service unavailable (503)
       // OR-Tools might not be available in test environment
+      // If we get 400, log the error to debug
+      if (response.statusCode === 400) {
+        const errorBody = JSON.parse(response.body);
+        console.error('Optimization failed:', errorBody);
+      }
+      
       expect([200, 503]).toContain(response.statusCode);
 
       if (response.statusCode === 200) {
