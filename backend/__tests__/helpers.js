@@ -1,45 +1,20 @@
 /**
- * Test helpers for building Fastify app with in-memory test database
+ * Test helpers for building Fastify app with PostgreSQL test database
+ * Uses real PostgreSQL - 100% compatibility, no workarounds needed!
  */
 
 import Fastify from 'fastify';
-import { registerTestDatabase } from './db-mem.js';
-import { runMigrations } from '../db/connection.js';
+import { registerDatabase, runMigrations } from '../db/connection.js';
 import ordersRoutes from '../routes/orders.js';
 import optimizeRoutes from '../routes/optimize.js';
 import zonesRoutes from '../routes/zones.js';
 import driversRoutes from '../routes/drivers.js';
 
 /**
- * Convert DO $$ ... END $$ blocks to regular SQL for pg-mem compatibility
- * Extracts ALTER TABLE statements from PL/pgSQL blocks
- * pg-mem doesn't support PL/pgSQL, so we convert to plain SQL
- */
-function convertDoBlocksToSQL(sql) {
-  // Pattern to match DO $$ BEGIN ... END $$ blocks
-  // This regex captures the entire DO block and extracts the ALTER TABLE statement
-  const doBlockPattern = /DO\s+\$\$\s*BEGIN\s+IF\s+NOT\s+EXISTS\s*\([^)]+\)\s+THEN\s+((?:ALTER\s+TABLE[^;]+(?:;|\n)))\s+END\s+IF;\s*END\s+\$\$/gis;
-  
-  return sql.replace(doBlockPattern, (match, alterTable) => {
-    // Extract and clean the ALTER TABLE statement
-    // Remove extra whitespace and ensure it ends with semicolon
-    let stmt = alterTable.trim();
-    if (!stmt.endsWith(';')) {
-      stmt += ';';
-    }
-    return stmt;
-  });
-}
-
-/**
- * Run migrations with pg-mem compatibility fixes
- * Replaces DECIMAL with NUMERIC and converts DO blocks to regular SQL
- * 
- * Separates schema migrations (tables, constraints) from infrastructure migrations (users, permissions)
- * Infrastructure migrations are skipped in tests as they:
+ * Run migrations for tests, skipping infrastructure migrations
+ * Infrastructure migrations (users, permissions) are skipped as they:
  * - Are not needed for testing application logic
  * - Are run manually by DBA in production
- * - Contain features pg-mem doesn't support (GRANT, CREATE USER)
  */
 async function runMigrationsForTests(fastify) {
   const client = await fastify.pg.connect();
@@ -58,7 +33,6 @@ async function runMigrationsForTests(fastify) {
     // These are skipped in tests because:
     // 1. Not needed for testing application logic
     // 2. Run manually by DBA in production
-    // 3. pg-mem doesn't support GRANT/CREATE USER
     const infrastructureMigrations = [
       '004_create_app_user.sql', // User creation and permissions
       // Add future infrastructure migrations here:
@@ -81,20 +55,14 @@ async function runMigrationsForTests(fastify) {
       
       // Also skip if migration contains infrastructure operations
       const migrationPath = path.join(migrationsDir, file);
-      let migrationSQL = fs.readFileSync(migrationPath, "utf8");
+      const migrationSQL = fs.readFileSync(migrationPath, "utf8");
       
       // Skip migrations with GRANT or CREATE USER (infrastructure, not schema)
       if (migrationSQL.includes('GRANT ') || migrationSQL.includes('CREATE USER')) {
         continue;
       }
       
-      // Fix pg-mem compatibility: replace DECIMAL with NUMERIC
-      migrationSQL = migrationSQL.replace(/DECIMAL\((\d+),\s*(\d+)\)/gi, 'NUMERIC($1, $2)');
-      
-      // Convert DO $$ ... END $$ blocks to regular SQL
-      // pg-mem doesn't support PL/pgSQL, so we extract the ALTER TABLE statements
-      migrationSQL = convertDoBlocksToSQL(migrationSQL);
-      
+      // No workarounds needed - real PostgreSQL supports everything!
       await client.query(migrationSQL);
     }
   } catch (error) {
@@ -105,8 +73,8 @@ async function runMigrationsForTests(fastify) {
 }
 
 /**
- * Build a test Fastify app with in-memory database
- * Uses pg-mem - no real PostgreSQL needed!
+ * Build a test Fastify app with PostgreSQL database
+ * Uses real PostgreSQL - 100% compatibility, no workarounds!
  * @returns {Promise<FastifyInstance>}
  */
 export async function buildTestApp() {
@@ -114,11 +82,12 @@ export async function buildTestApp() {
     logger: false, // Disable logging in tests
   });
 
-  // Register in-memory database (pg-mem)
-  await registerTestDatabase(app);
+  // Register PostgreSQL database (real PostgreSQL, not pg-mem)
+  // Uses DATABASE_URL from environment or defaults to test database
+  await registerDatabase(app);
   
   // Run migrations to set up schema
-  // Note: We need to modify migrations for pg-mem compatibility
+  // No workarounds needed - real PostgreSQL supports all SQL features!
   await runMigrationsForTests(app);
 
   // Register routes
@@ -138,24 +107,16 @@ export async function buildTestApp() {
 
 /**
  * Clean all tables before each test
- * Note: With pg-mem, this is optional since each test can get a fresh DB,
- * but keeping it for explicit cleanup and test isolation
+ * Uses TRUNCATE for fast, reliable cleanup with real PostgreSQL
  * @param {FastifyInstance} app - Fastify app instance
  */
 export async function cleanDatabase(app) {
   const client = await app.pg.connect();
   try {
-    // Use TRUNCATE for faster, more reliable cleanup
+    // TRUNCATE is fast and reliable with real PostgreSQL
     // CASCADE ensures foreign key constraints are handled
     // RESTART IDENTITY resets sequences (not needed for UUIDs, but good practice)
     await client.query('TRUNCATE TABLE orders, zones, vehicles, drivers RESTART IDENTITY CASCADE');
-  } catch (error) {
-    // If TRUNCATE fails (pg-mem might not support it), fall back to DELETE
-    // Delete in reverse order of dependencies to avoid foreign key violations
-    await client.query('DELETE FROM orders');
-    await client.query('DELETE FROM zones');
-    await client.query('DELETE FROM vehicles');
-    await client.query('DELETE FROM drivers');
   } finally {
     client.release();
   }
