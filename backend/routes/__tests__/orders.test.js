@@ -26,10 +26,14 @@ describe("Orders API", () => {
 
   describe("POST /api/orders", () => {
     it("should create a single order", async () => {
+      // Generate unique identifier to avoid conflicts in parallel Jest workers
+      const testId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const orderNumber = `TEST-${testId}-001`;
+      
       const orderData = {
         orders: [
           {
-            order_number: "TEST-001",
+            order_number: orderNumber,
             customer_name: "John Doe",
             address: "123 Main St, City, State",
             phone: "555-0100",
@@ -51,23 +55,25 @@ describe("Orders API", () => {
       const body = JSON.parse(response.body);
       expect(body.created).toBe(1);
       expect(body.orders).toHaveLength(1);
-      expect(body.orders[0].order_number).toBe("TEST-001");
+      expect(body.orders[0].order_number).toBe(orderNumber);
       expect(body.orders[0].customer_name).toBe("John Doe");
       expect(body.orders[0].id).toBeDefined();
     });
 
     it("should create multiple orders in bulk", async () => {
+      // Generate unique identifier to avoid conflicts in parallel Jest workers
+      const testId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const orderData = {
         orders: [
           {
-            order_number: "TEST-001",
+            order_number: `TEST-${testId}-001`,
             customer_name: "John Doe",
             address: "123 Main St",
             latitude: 40.7128,
             longitude: -74.006,
           },
           {
-            order_number: "TEST-002",
+            order_number: `TEST-${testId}-002`,
             customer_name: "Jane Smith",
             address: "456 Oak Ave",
             latitude: 40.758,
@@ -115,10 +121,12 @@ describe("Orders API", () => {
     });
 
     it("should handle package dimensions", async () => {
+      // Generate unique identifier to avoid conflicts in parallel Jest workers
+      const testId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const orderData = {
         orders: [
           {
-            order_number: "TEST-001",
+            order_number: `TEST-${testId}-001`,
             customer_name: "John Doe",
             address: "123 Main St",
             latitude: 40.7128,
@@ -148,19 +156,24 @@ describe("Orders API", () => {
   });
 
   describe("GET /api/orders", () => {
+    let testId; // Store testId for use in tests
+    
     beforeEach(async () => {
-      // Create test orders
+      // Generate unique identifier to avoid conflicts in parallel Jest workers
+      testId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create test orders with unique order numbers
       const orderData = {
         orders: [
           {
-            order_number: "TEST-001",
+            order_number: `TEST-${testId}-001`,
             customer_name: "John Doe",
             address: "123 Main St",
             latitude: 40.7128,
             longitude: -74.006,
           },
           {
-            order_number: "TEST-002",
+            order_number: `TEST-${testId}-002`,
             customer_name: "Jane Smith",
             address: "456 Oak Ave",
             latitude: 40.758,
@@ -206,16 +219,18 @@ describe("Orders API", () => {
     });
 
     it("should filter orders by driver_id", async () => {
-      // First, create a driver
+      // First, create a driver with unique identifier
+      const driverTestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const driverResponse = await app.inject({
         method: "POST",
         url: "/api/drivers",
         payload: {
-          name: "Test Driver",
-          phone: "555-0100",
+          name: `Test Driver ${driverTestId}`,
+          phone: `555-${driverTestId.slice(-4)}`,
         },
       });
 
+      expect(driverResponse.statusCode).toBe(201);
       const driver = JSON.parse(driverResponse.body);
       const driverId = driver.id;
 
@@ -267,12 +282,18 @@ describe("Orders API", () => {
 
   describe("GET /api/orders/:id", () => {
     let orderId;
+    let testId;
+    let orderNumber;
 
     beforeEach(async () => {
+      // Generate unique identifier to avoid conflicts in parallel Jest workers
+      testId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      orderNumber = `TEST-${testId}-001`;
+      
       const orderData = {
         orders: [
           {
-            order_number: "TEST-001",
+            order_number: orderNumber,
             customer_name: "John Doe",
             address: "123 Main St",
             latitude: 40.7128,
@@ -301,7 +322,7 @@ describe("Orders API", () => {
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.id).toBe(orderId);
-      expect(body.order_number).toBe("TEST-001");
+      expect(body.order_number).toBe(orderNumber);
     });
 
     it("should return 404 for non-existent order", async () => {

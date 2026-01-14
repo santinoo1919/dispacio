@@ -26,15 +26,19 @@ describe("Route Optimization API", () => {
   describe("POST /api/routes/optimize", () => {
     let driverId;
     let orderIds = [];
+    let testId; // Unique identifier for this test run
 
     beforeEach(async () => {
-      // Create a driver
+      // Generate unique identifier for this test run to avoid conflicts in parallel Jest workers
+      testId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create a driver with unique name/phone
       const driverResponse = await app.inject({
         method: "POST",
         url: "/api/drivers",
         payload: {
-          name: "Test Driver",
-          phone: "555-0100",
+          name: `Test Driver ${testId}`,
+          phone: `555-${testId.slice(-4)}`,
         },
       });
 
@@ -53,11 +57,11 @@ describe("Route Optimization API", () => {
         vehicleClient.release();
       }
 
-      // Create orders with coordinates
+      // Create orders with UNIQUE order numbers to avoid conflicts
       const orderData = {
         orders: [
           {
-            order_number: "TEST-001",
+            order_number: `TEST-${testId}-001`,
             customer_name: "John Doe",
             address: "123 Main St, New York, NY",
             latitude: 40.7128,
@@ -65,7 +69,7 @@ describe("Route Optimization API", () => {
             package_weight: 5.5,
           },
           {
-            order_number: "TEST-002",
+            order_number: `TEST-${testId}-002`,
             customer_name: "Jane Smith",
             address: "456 Oak Ave, New York, NY",
             latitude: 40.758,
@@ -128,17 +132,18 @@ describe("Route Optimization API", () => {
     });
 
     it("should return 400 when no orders found for driver", async () => {
-      // Create another driver with no orders
+      // Create another driver with no orders (use unique identifier)
+      const emptyTestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const driverResponse = await app.inject({
         method: "POST",
         url: "/api/drivers",
         payload: {
-          name: "Empty Driver",
-          phone: "555-0200",
+          name: `Empty Driver ${emptyTestId}`,
+          phone: `555-${emptyTestId.slice(-4)}`,
         },
       });
 
-      expect(driverResponse.statusCode).toBe(200);
+      expect(driverResponse.statusCode).toBe(201);
       const emptyDriverId = JSON.parse(driverResponse.body).id;
 
       const response = await app.inject({
@@ -155,11 +160,12 @@ describe("Route Optimization API", () => {
     });
 
     it("should return 400 when orders have no coordinates", async () => {
-      // Create order without coordinates
+      // Create order without coordinates (use unique identifier)
+      const noCoordsTestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const orderData = {
         orders: [
           {
-            order_number: "TEST-NO-COORDS",
+            order_number: `TEST-${noCoordsTestId}-NO-COORDS`,
             customer_name: "No Coords",
             address: "123 Main St",
             // No latitude/longitude
