@@ -14,6 +14,10 @@ export default {
   // Module resolution
   moduleNameMapper: {},
   
+  // Run migrations ONCE before all tests (no race conditions!)
+  // Use file:// URL for ES modules
+  globalSetup: '<rootDir>/__tests__/globalSetup.js',
+  
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
   

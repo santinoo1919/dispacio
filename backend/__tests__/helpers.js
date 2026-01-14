@@ -1,114 +1,21 @@
 /**
  * Test helpers for building Fastify app with PostgreSQL test database
  * Uses real PostgreSQL - 100% compatibility, no workarounds needed!
+ * 
+ * Note: Migrations are run ONCE globally via jest.config.js globalSetup
+ * This simplifies the code and eliminates race conditions!
  */
 
 import Fastify from 'fastify';
-import { registerDatabase, runMigrations } from '../db/connection.js';
+import { registerDatabase } from '../db/connection.js';
 import ordersRoutes from '../routes/orders.js';
 import optimizeRoutes from '../routes/optimize.js';
 import zonesRoutes from '../routes/zones.js';
 import driversRoutes from '../routes/drivers.js';
 
 /**
- * Check if migrations have already been run by checking if main tables exist
- * This works across Jest workers (each worker checks the shared database)
- */
-async function areMigrationsRun(client) {
-  try {
-    // Check if main tables exist (migrations create these)
-    const result = await client.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'orders'
-      ) AND EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'drivers'
-      ) AS tables_exist;
-    `);
-    return result.rows[0]?.tables_exist === true;
-  } catch (error) {
-    // If check fails, assume migrations not run (safer to run than skip)
-    return false;
-  }
-}
-
-/**
- * Run migrations for tests, skipping infrastructure migrations
- * Infrastructure migrations (users, permissions) are skipped as they:
- * - Are not needed for testing application logic
- * - Are run manually by DBA in production
- * 
- * Checks database state to avoid running migrations multiple times across Jest workers
- */
-async function runMigrationsForTests(fastify) {
-  const client = await fastify.pg.connect();
-
-  try {
-    // Check if migrations already run (works across Jest workers)
-    // Multiple test files share same database in CI, so check DB state
-    if (await areMigrationsRun(client)) {
-      return; // Migrations already run by another worker
-    }
-
-    // Read migration files
-    const fs = await import("fs");
-    const path = await import("path");
-    const { fileURLToPath } = await import("url");
-
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const migrationsDir = path.join(__dirname, "../db/migrations");
-    
-    // Infrastructure migrations (users, permissions, DBA operations)
-    // These are skipped in tests because:
-    // 1. Not needed for testing application logic
-    // 2. Run manually by DBA in production
-    const infrastructureMigrations = [
-      '004_create_app_user.sql', // User creation and permissions
-      // Add future infrastructure migrations here:
-      // '005_setup_replication.sql',
-      // '006_create_backup_user.sql',
-    ];
-    
-    // Get all migration files sorted by name
-    const migrationFiles = fs
-      .readdirSync(migrationsDir)
-      .filter((file) => file.endsWith(".sql"))
-      .sort();
-
-    // Execute each migration (skip infrastructure migrations)
-    for (const file of migrationFiles) {
-      // Skip infrastructure migrations - not needed for tests
-      if (infrastructureMigrations.includes(file)) {
-        continue;
-      }
-      
-      // Also skip if migration contains infrastructure operations
-      const migrationPath = path.join(migrationsDir, file);
-      const migrationSQL = fs.readFileSync(migrationPath, "utf8");
-      
-      // Skip migrations with GRANT or CREATE USER (infrastructure, not schema)
-      if (migrationSQL.includes('GRANT ') || migrationSQL.includes('CREATE USER')) {
-        continue;
-      }
-      
-      // No workarounds needed - real PostgreSQL supports everything!
-      // All migrations use IF NOT EXISTS, so safe to run multiple times
-      await client.query(migrationSQL);
-    }
-  } catch (error) {
-    throw error;
-  } finally {
-    client.release();
-  }
-}
-
-/**
  * Build a test Fastify app with PostgreSQL database
- * Uses real PostgreSQL - 100% compatibility, no workarounds!
+ * Schema is already set up by globalSetup (migrations run once before all tests)
  * @returns {Promise<FastifyInstance>}
  */
 export async function buildTestApp() {
@@ -116,13 +23,9 @@ export async function buildTestApp() {
     logger: false, // Disable logging in tests
   });
 
-  // Register PostgreSQL database (real PostgreSQL, not pg-mem)
-  // Uses DATABASE_URL from environment or defaults to test database
+  // Register PostgreSQL database
+  // Schema already exists from globalSetup - no migrations needed here!
   await registerDatabase(app);
-  
-  // Run migrations to set up schema
-  // No workarounds needed - real PostgreSQL supports all SQL features!
-  await runMigrationsForTests(app);
 
   // Register routes
   await app.register(ordersRoutes, { prefix: '/api/orders' });
