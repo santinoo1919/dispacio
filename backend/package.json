@@ -9,7 +9,7 @@
     "dev": "node --watch server.js",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "test:ci": "NODE_OPTIONS=--experimental-vm-modules jest --ci --coverage=false --runInBand"
+    "test:ci": "NODE_OPTIONS=--experimental-vm-modules jest --ci --coverage=false"
   },
   "dependencies": {
     "@fastify/cors": "^8.4.0",

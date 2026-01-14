@@ -43,25 +43,26 @@ export async function buildTestApp() {
 }
 
 /**
- * Clean all tables before each test
- * Uses TRUNCATE for fast, reliable cleanup with real PostgreSQL
+ * Start a transaction for test isolation
+ * Each test runs in its own transaction and rolls back automatically
+ * This provides perfect isolation and works with parallel execution
  * @param {FastifyInstance} app - Fastify app instance
+ * @returns {Promise<Object>} Database client (keep for rollback)
  */
-export async function cleanDatabase(app) {
+export async function startTestTransaction(app) {
   const client = await app.pg.connect();
+  await client.query('BEGIN');
+  return client;
+}
+
+/**
+ * Rollback transaction and release client
+ * Undoes all changes made during the test
+ * @param {Object} client - Database client from startTestTransaction
+ */
+export async function rollbackTestTransaction(client) {
   try {
-    // TRUNCATE is auto-commit in PostgreSQL (can't be in transaction)
-    // CASCADE handles foreign key dependencies automatically
-    // Truncate all tables in one command for atomicity
-    await client.query('TRUNCATE TABLE orders, zones, vehicles, drivers RESTART IDENTITY CASCADE');
-  } catch (error) {
-    // If TRUNCATE fails (e.g., permission issues), fall back to DELETE
-    // DELETE is slower but works in all scenarios
-    console.warn('TRUNCATE failed, using DELETE fallback:', error.message);
-    await client.query('DELETE FROM orders');
-    await client.query('DELETE FROM zones');
-    await client.query('DELETE FROM vehicles');
-    await client.query('DELETE FROM drivers');
+    await client.query('ROLLBACK');
   } finally {
     client.release();
   }

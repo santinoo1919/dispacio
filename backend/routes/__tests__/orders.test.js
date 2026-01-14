@@ -1,22 +1,28 @@
 /**
  * Integration tests for Orders API endpoints
  * Tests full stack: Fastify + PostgreSQL
- * Database auto-cleans before each test
+ * Each test runs in its own transaction for perfect isolation
  */
 
-import { buildTestApp, cleanDatabase } from "../../__tests__/helpers.js";
+import { buildTestApp, startTestTransaction, rollbackTestTransaction } from "../../__tests__/helpers.js";
 
 describe("Orders API", () => {
   let app;
+  let transactionClient;
 
   // Build app before all tests
   beforeAll(async () => {
     app = await buildTestApp();
   });
 
-  // Clean database before each test
+  // Start transaction before each test (perfect isolation)
   beforeEach(async () => {
-    await cleanDatabase(app);
+    transactionClient = await startTestTransaction(app);
+  });
+
+  // Rollback transaction after each test (undo all changes)
+  afterEach(async () => {
+    await rollbackTestTransaction(transactionClient);
   });
 
   // Close app after all tests

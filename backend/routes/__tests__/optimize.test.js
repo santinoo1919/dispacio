@@ -1,20 +1,27 @@
 /**
  * Integration tests for Route Optimization API endpoints
  * Tests full stack: Fastify + PostgreSQL + OR-Tools
- * Database auto-cleans before each test
+ * Each test runs in its own transaction for perfect isolation
  */
 
-import { buildTestApp, cleanDatabase } from "../../__tests__/helpers.js";
+import { buildTestApp, startTestTransaction, rollbackTestTransaction } from "../../__tests__/helpers.js";
 
 describe("Route Optimization API", () => {
   let app;
+  let transactionClient;
 
   beforeAll(async () => {
     app = await buildTestApp();
   });
 
+  // Start transaction before each test (perfect isolation)
   beforeEach(async () => {
-    await cleanDatabase(app);
+    transactionClient = await startTestTransaction(app);
+  });
+
+  // Rollback transaction after each test (undo all changes)
+  afterEach(async () => {
+    await rollbackTestTransaction(transactionClient);
   });
 
   afterAll(async () => {
