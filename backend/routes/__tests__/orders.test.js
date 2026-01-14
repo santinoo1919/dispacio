@@ -214,8 +214,13 @@ describe("Orders API", () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
-      expect(body.orders).toHaveLength(2);
-      expect(body.total).toBe(2);
+      
+      // Filter orders created by this test (using testId)
+      const testOrders = body.orders.filter((o) => o.order_number.includes(testId));
+      expect(testOrders).toHaveLength(2);
+      
+      // Total should be at least 2 (may be more if other tests ran in parallel)
+      expect(body.orders.length).toBeGreaterThanOrEqual(2);
     });
 
     it("should filter orders by driver_id", async () => {
