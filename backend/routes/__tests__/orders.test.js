@@ -288,6 +288,7 @@ describe("Orders API", () => {
       });
 
       const body = JSON.parse(response.body);
+      expect(body.orders).toHaveLength(1);
       orderId = body.orders[0].id;
     });
 
