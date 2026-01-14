@@ -43,7 +43,28 @@ describe("Route Optimization API", () => {
       });
 
       expect(driverResponse.statusCode).toBe(201); // POST /api/drivers returns 201
-      driverId = JSON.parse(driverResponse.body).id;
+      const driverBody = JSON.parse(driverResponse.body);
+      driverId = driverBody.id;
+      
+      // Verify driver was actually created
+      expect(driverId).toBeDefined();
+      if (!driverId) {
+        throw new Error(`Driver creation failed: ${JSON.stringify(driverBody)}`);
+      }
+
+      // Verify driver exists in database before creating vehicle
+      const verifyClient = await app.pg.connect();
+      try {
+        const verifyResult = await verifyClient.query(
+          'SELECT id FROM drivers WHERE id = $1',
+          [driverId]
+        );
+        if (verifyResult.rows.length === 0) {
+          throw new Error(`Driver ${driverId} does not exist in database`);
+        }
+      } finally {
+        verifyClient.release();
+      }
 
       // Create a vehicle for the driver
       const vehicleClient = await app.pg.connect();
@@ -53,6 +74,14 @@ describe("Route Optimization API", () => {
            VALUES ($1, $2, $3)`,
           [driverId, 1000, 5000]
         );
+      } catch (error) {
+        // If vehicle creation fails, log the error
+        console.error('Vehicle creation failed:', {
+          driverId,
+          error: error.message,
+          code: error.code
+        });
+        throw error;
       } finally {
         vehicleClient.release();
       }
@@ -103,6 +132,26 @@ describe("Route Optimization API", () => {
 
       const orders = orderBody.orders;
       orderIds = orders.map((o) => o.id);
+      
+      // Verify orders were created
+      expect(orderIds.length).toBe(2);
+      if (orderIds.length === 0) {
+        throw new Error('No orders created, cannot assign to driver');
+      }
+
+      // Verify driver still exists before assigning orders
+      const verifyDriverClient = await app.pg.connect();
+      try {
+        const verifyResult = await verifyDriverClient.query(
+          'SELECT id FROM drivers WHERE id = $1',
+          [driverId]
+        );
+        if (verifyResult.rows.length === 0) {
+          throw new Error(`Driver ${driverId} does not exist when assigning orders`);
+        }
+      } finally {
+        verifyDriverClient.release();
+      }
 
       // Assign orders to driver - get new client
       const updateClient = await app.pg.connect();
@@ -111,6 +160,14 @@ describe("Route Optimization API", () => {
           `UPDATE orders SET driver_id = $1 WHERE id = ANY($2::uuid[])`,
           [driverId, orderIds]
         );
+      } catch (error) {
+        console.error('Order assignment failed:', {
+          driverId,
+          orderIds,
+          error: error.message,
+          code: error.code
+        });
+        throw error;
       } finally {
         updateClient.release();
       }
@@ -144,7 +201,9 @@ describe("Route Optimization API", () => {
       });
 
       expect(driverResponse.statusCode).toBe(201);
-      const emptyDriverId = JSON.parse(driverResponse.body).id;
+      const driverBody = JSON.parse(driverResponse.body);
+      const emptyDriverId = driverBody.id;
+      expect(emptyDriverId).toBeDefined();
 
       const response = await app.inject({
         method: "POST",
