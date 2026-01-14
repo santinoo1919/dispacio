@@ -4,9 +4,9 @@
  * Database auto-cleans before each test
  */
 
-import { buildTestApp, cleanDatabase } from '../../__tests__/helpers.js';
+import { buildTestApp, cleanDatabase } from "../../__tests__/helpers.js";
 
-describe('Orders API', () => {
+describe("Orders API", () => {
   let app;
 
   // Build app before all tests
@@ -24,26 +24,26 @@ describe('Orders API', () => {
     await app.close();
   });
 
-  describe('POST /api/orders', () => {
-    it('should create a single order', async () => {
+  describe("POST /api/orders", () => {
+    it("should create a single order", async () => {
       const orderData = {
         orders: [
           {
-            order_number: 'TEST-001',
-            customer_name: 'John Doe',
-            address: '123 Main St, City, State',
-            phone: '555-0100',
+            order_number: "TEST-001",
+            customer_name: "John Doe",
+            address: "123 Main St, City, State",
+            phone: "555-0100",
             latitude: 40.7128,
-            longitude: -74.0060,
+            longitude: -74.006,
             package_weight: 5.5,
-            priority: 'normal',
+            priority: "normal",
           },
         ],
       };
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders',
+        method: "POST",
+        url: "/api/orders",
         payload: orderData,
       });
 
@@ -51,78 +51,78 @@ describe('Orders API', () => {
       const body = JSON.parse(response.body);
       expect(body.created).toBe(1);
       expect(body.orders).toHaveLength(1);
-      expect(body.orders[0].order_number).toBe('TEST-001');
-      expect(body.orders[0].customer_name).toBe('John Doe');
+      expect(body.orders[0].order_number).toBe("TEST-001");
+      expect(body.orders[0].customer_name).toBe("John Doe");
       expect(body.orders[0].id).toBeDefined();
     });
 
-    it('should create multiple orders in bulk', async () => {
+    it("should create multiple orders in bulk", async () => {
       const orderData = {
         orders: [
           {
-            order_number: 'TEST-001',
-            customer_name: 'John Doe',
-            address: '123 Main St',
+            order_number: "TEST-001",
+            customer_name: "John Doe",
+            address: "123 Main St",
             latitude: 40.7128,
-            longitude: -74.0060,
+            longitude: -74.006,
           },
           {
-            order_number: 'TEST-002',
-            customer_name: 'Jane Smith',
-            address: '456 Oak Ave',
-            latitude: 40.7580,
+            order_number: "TEST-002",
+            customer_name: "Jane Smith",
+            address: "456 Oak Ave",
+            latitude: 40.758,
             longitude: -73.9855,
           },
         ],
       };
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders',
+        method: "POST",
+        url: "/api/orders",
         payload: orderData,
       });
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
-      
+
       // Check for errors if creation failed
       if (body.errors && body.errors.length > 0) {
-        console.error('Order creation errors:', body.errors);
+        console.error("Order creation errors:", body.errors);
       }
-      
+
       expect(body.created).toBe(2);
       expect(body.orders).toHaveLength(2);
       expect(body.failed).toBe(0);
     });
 
-    it('should reject order without required fields', async () => {
+    it("should reject order without required fields", async () => {
       const orderData = {
         orders: [
           {
-            customer_name: 'John Doe',
+            customer_name: "John Doe",
             // Missing order_number and address
           },
         ],
       };
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders',
+        method: "POST",
+        url: "/api/orders",
         payload: orderData,
       });
 
       expect(response.statusCode).toBe(400);
     });
 
-    it('should handle package dimensions', async () => {
+    it("should handle package dimensions", async () => {
       const orderData = {
         orders: [
           {
-            order_number: 'TEST-001',
-            customer_name: 'John Doe',
-            address: '123 Main St',
+            order_number: "TEST-001",
+            customer_name: "John Doe",
+            address: "123 Main St",
             latitude: 40.7128,
-            longitude: -74.0060,
+            longitude: -74.006,
             package_length: 10.5,
             package_width: 8.0,
             package_height: 6.0,
@@ -132,8 +132,8 @@ describe('Orders API', () => {
       };
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders',
+        method: "POST",
+        url: "/api/orders",
         payload: orderData,
       });
 
@@ -147,45 +147,56 @@ describe('Orders API', () => {
     });
   });
 
-  describe('GET /api/orders', () => {
+  describe("GET /api/orders", () => {
     beforeEach(async () => {
       // Create test orders
       const orderData = {
         orders: [
           {
-            order_number: 'TEST-001',
-            customer_name: 'John Doe',
-            address: '123 Main St',
+            order_number: "TEST-001",
+            customer_name: "John Doe",
+            address: "123 Main St",
             latitude: 40.7128,
-            longitude: -74.0060,
+            longitude: -74.006,
           },
           {
-            order_number: 'TEST-002',
-            customer_name: 'Jane Smith',
-            address: '456 Oak Ave',
-            latitude: 40.7580,
+            order_number: "TEST-002",
+            customer_name: "Jane Smith",
+            address: "456 Oak Ave",
+            latitude: 40.758,
             longitude: -73.9855,
           },
         ],
       };
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders',
+        method: "POST",
+        url: "/api/orders",
         payload: orderData,
       });
 
       // Verify orders were created successfully
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
+      
+      // Log errors if orders weren't created
+      if (body.created !== 2) {
+        console.error('Order creation failed:', {
+          created: body.created,
+          failed: body.failed,
+          errors: body.errors,
+          response: body
+        });
+      }
+      
       expect(body.created).toBe(2);
       expect(body.orders).toHaveLength(2);
     });
 
-    it('should get all orders', async () => {
+    it("should get all orders", async () => {
       const response = await app.inject({
-        method: 'GET',
-        url: '/api/orders?limit=10&offset=0',
+        method: "GET",
+        url: "/api/orders?limit=10&offset=0",
       });
 
       expect(response.statusCode).toBe(200);
@@ -194,14 +205,14 @@ describe('Orders API', () => {
       expect(body.total).toBe(2);
     });
 
-    it('should filter orders by driver_id', async () => {
+    it("should filter orders by driver_id", async () => {
       // First, create a driver
       const driverResponse = await app.inject({
-        method: 'POST',
-        url: '/api/drivers',
+        method: "POST",
+        url: "/api/drivers",
         payload: {
-          name: 'Test Driver',
-          phone: '555-0100',
+          name: "Test Driver",
+          phone: "555-0100",
         },
       });
 
@@ -210,8 +221,8 @@ describe('Orders API', () => {
 
       // Assign order to driver
       const orderResponse = await app.inject({
-        method: 'GET',
-        url: '/api/orders?limit=10&offset=0',
+        method: "GET",
+        url: "/api/orders?limit=10&offset=0",
       });
 
       const orders = JSON.parse(orderResponse.body).orders;
@@ -220,7 +231,7 @@ describe('Orders API', () => {
       // Update order with driver_id
       const client = await app.pg.connect();
       try {
-        await client.query('UPDATE orders SET driver_id = $1 WHERE id = $2', [
+        await client.query("UPDATE orders SET driver_id = $1 WHERE id = $2", [
           driverId,
           orderId,
         ]);
@@ -230,7 +241,7 @@ describe('Orders API', () => {
 
       // Filter by driver_id
       const filteredResponse = await app.inject({
-        method: 'GET',
+        method: "GET",
         url: `/api/orders?driver_id=${driverId}&limit=10&offset=0`,
       });
 
@@ -240,10 +251,10 @@ describe('Orders API', () => {
       expect(body.orders[0].driver_id).toBe(driverId);
     });
 
-    it('should support pagination', async () => {
+    it("should support pagination", async () => {
       const response = await app.inject({
-        method: 'GET',
-        url: '/api/orders?limit=1&offset=0',
+        method: "GET",
+        url: "/api/orders?limit=1&offset=0",
       });
 
       expect(response.statusCode).toBe(200);
@@ -254,25 +265,25 @@ describe('Orders API', () => {
     });
   });
 
-  describe('GET /api/orders/:id', () => {
+  describe("GET /api/orders/:id", () => {
     let orderId;
 
     beforeEach(async () => {
       const orderData = {
         orders: [
           {
-            order_number: 'TEST-001',
-            customer_name: 'John Doe',
-            address: '123 Main St',
+            order_number: "TEST-001",
+            customer_name: "John Doe",
+            address: "123 Main St",
             latitude: 40.7128,
-            longitude: -74.0060,
+            longitude: -74.006,
           },
         ],
       };
 
       const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders',
+        method: "POST",
+        url: "/api/orders",
         payload: orderData,
       });
 
@@ -280,29 +291,28 @@ describe('Orders API', () => {
       orderId = body.orders[0].id;
     });
 
-    it('should get order by ID', async () => {
+    it("should get order by ID", async () => {
       const response = await app.inject({
-        method: 'GET',
+        method: "GET",
         url: `/api/orders/${orderId}`,
       });
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
       expect(body.id).toBe(orderId);
-      expect(body.order_number).toBe('TEST-001');
+      expect(body.order_number).toBe("TEST-001");
     });
 
-    it('should return 404 for non-existent order', async () => {
-      const fakeId = '00000000-0000-0000-0000-000000000000';
+    it("should return 404 for non-existent order", async () => {
+      const fakeId = "00000000-0000-0000-0000-000000000000";
       const response = await app.inject({
-        method: 'GET',
+        method: "GET",
         url: `/api/orders/${fakeId}`,
       });
 
       expect(response.statusCode).toBe(404);
       const body = JSON.parse(response.body);
-      expect(body.error).toBe('Order not found');
+      expect(body.error).toBe("Order not found");
     });
   });
 });
-

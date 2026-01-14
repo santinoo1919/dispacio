@@ -38,6 +38,7 @@ describe("Route Optimization API", () => {
         },
       });
 
+      expect(driverResponse.statusCode).toBe(201); // POST /api/drivers returns 201
       driverId = JSON.parse(driverResponse.body).id;
 
       // Create a vehicle for the driver
@@ -83,6 +84,17 @@ describe("Route Optimization API", () => {
       // Verify orders were created
       expect(orderResponse.statusCode).toBe(200);
       const orderBody = JSON.parse(orderResponse.body);
+      
+      // Log errors if orders weren't created
+      if (orderBody.created !== 2) {
+        console.error('Order creation failed:', {
+          created: orderBody.created,
+          failed: orderBody.failed,
+          errors: orderBody.errors,
+          response: orderBody
+        });
+      }
+      
       expect(orderBody.created).toBe(2);
 
       const orders = orderBody.orders;
