@@ -5,6 +5,7 @@
 
 import Fastify from "fastify";
 import { randomUUID } from "crypto";
+import { validateEnv } from "./config/env.js";
 import { registerDatabase, runMigrations } from "./db/connection.js";
 import optimizeRoutes from "./routes/optimize.js";
 import ordersRoutes from "./routes/orders.js";
@@ -15,6 +16,9 @@ import driversRoutes from "./routes/drivers.js";
 import errorHandler from "./plugins/error-handler.js";
 import gracefulShutdown from "./plugins/graceful-shutdown.js";
 import requestContext from "./plugins/request-context.js";
+
+// Validate environment variables FIRST (before anything else)
+validateEnv();
 
 const fastify = Fastify({
   logger: {
