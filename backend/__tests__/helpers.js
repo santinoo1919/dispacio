@@ -50,22 +50,13 @@ export async function buildTestApp() {
 export async function cleanDatabase(app) {
   const client = await app.pg.connect();
   try {
-    // Disable foreign key checks temporarily for reliable cleanup
-    // TRUNCATE in correct order to handle dependencies
-    // CASCADE ensures foreign key constraints are handled, but order matters for reliability
-    await client.query('BEGIN');
-    
-    // Truncate in dependency order (children first, then parents)
-    // This ensures foreign key constraints don't interfere
-    await client.query('TRUNCATE TABLE orders RESTART IDENTITY CASCADE');
-    await client.query('TRUNCATE TABLE zones RESTART IDENTITY CASCADE');
-    await client.query('TRUNCATE TABLE vehicles RESTART IDENTITY CASCADE');
-    await client.query('TRUNCATE TABLE drivers RESTART IDENTITY CASCADE');
-    
-    await client.query('COMMIT');
+    // TRUNCATE is auto-commit in PostgreSQL (can't be in transaction)
+    // CASCADE handles foreign key dependencies automatically
+    // Truncate all tables in one command for atomicity
+    await client.query('TRUNCATE TABLE orders, zones, vehicles, drivers RESTART IDENTITY CASCADE');
   } catch (error) {
-    await client.query('ROLLBACK');
-    // If TRUNCATE fails, fall back to DELETE (slower but more reliable)
+    // If TRUNCATE fails (e.g., permission issues), fall back to DELETE
+    // DELETE is slower but works in all scenarios
     console.warn('TRUNCATE failed, using DELETE fallback:', error.message);
     await client.query('DELETE FROM orders');
     await client.query('DELETE FROM zones');
