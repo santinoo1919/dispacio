@@ -2,8 +2,9 @@
  * Core data types for the dispatch app
  */
 
-// Re-export Order from orders domain for backward compatibility
-export type { Order } from "@/lib/domains/orders/orders.types";
+// Import and re-export Order from orders domain for backward compatibility
+import type { Order } from "@/lib/domains/orders/orders.types";
+export type { Order };
 
 export interface Driver {
   id: string;
