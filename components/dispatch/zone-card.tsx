@@ -5,7 +5,8 @@
 
 import { Card } from "@/components/ui/card";
 import { useOptimizeRoute } from "@/hooks/use-routes";
-import { getDriverById, getDriverColor } from "@/lib/data/drivers";
+import { getDriversService } from "@/lib/domains/drivers/drivers.service";
+import { useDrivers } from "@/hooks/use-drivers";
 import { Zone } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
@@ -19,6 +20,8 @@ interface ZoneCardProps {
 
 export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
   const optimizeRouteMutation = useOptimizeRoute();
+  const { data: drivers } = useDrivers({ isActive: true });
+  const driversService = getDriversService();
 
   // Sort orders by rank (optimized sequence)
   const sortedOrders = useMemo(() => {
@@ -31,8 +34,10 @@ export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
   }, [zone.orders]);
 
   const assignedDriverId = zone.assignedDriverId;
-  const driver = assignedDriverId ? getDriverById(assignedDriverId) : undefined;
-  const driverColor = getDriverColor(assignedDriverId);
+  const driver = assignedDriverId
+    ? drivers?.find((d) => d.id === assignedDriverId)
+    : undefined;
+  const driverColor = driversService.getDriverColor(assignedDriverId, drivers);
 
   // Extract zone number
   const zoneNumberMatch = zone.id.match(/\d+/);
@@ -51,12 +56,11 @@ export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
 
     if (orderIds.length === 0) return;
 
-    // Ensure driver is assigned in backend
-    const { getBackendDriverId } = await import("@/lib/data/drivers");
-    const backendDriverId = getBackendDriverId(assignedDriverId);
-    if (backendDriverId && orderIds.length > 0) {
-      const { bulkAssignDriver } = await import("@/lib/services/api");
-      await bulkAssignDriver(orderIds, backendDriverId).catch(() => {});
+    // Driver ID is now backend UUID directly, no conversion needed
+    if (assignedDriverId && orderIds.length > 0) {
+      const { getOrdersService } = await import("@/lib/domains/orders/orders.service");
+      const ordersService = getOrdersService();
+      await ordersService.assignDriverToOrders(orderIds, assignedDriverId).catch(() => {});
     }
 
     await optimizeRouteMutation.mutateAsync({
@@ -104,7 +108,7 @@ export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
               style={{ backgroundColor: driverColor || "#71717A" }}
             >
               <Text className="text-white font-semibold text-sm">
-                {driver.initials}
+                {driver.initials || "—"}
               </Text>
             </View>
           )}

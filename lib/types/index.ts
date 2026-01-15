@@ -2,52 +2,15 @@
  * Core data types for the dispatch app
  */
 
-export interface Order {
-  id: string;
-  customerName: string;
-  address: string;
-  phone?: string;
-  notes?: string;
-  amount?: number;
-  items?: string;
-  priority?: "low" | "normal" | "high";
-  rank?: number; // Order position in dispatch sequence (undefined if not optimized)
-  driverId?: string; // Driver assigned to this order
-  latitude?: number; // Optional: coordinate from CSV
-  longitude?: number; // Optional: coordinate from CSV
-  // Package dimensions (for VROOM capacity constraints)
-  packageLength?: number;
-  packageWidth?: number;
-  packageHeight?: number;
-  packageWeight?: number;
-  packageVolume?: number;
-  // Backend sync
-  serverId?: string; // UUID from backend
-  rawData: Record<string, any>; // Store all original CSV data for flexibility
-}
+// Import and re-export Order from orders domain for backward compatibility
+import type { Order } from "@/lib/domains/orders/orders.types";
+export type { Order };
 
-export interface Driver {
-  id: string;
-  name: string;
-  phone: string;
-  initials: string;
-  location?: {
-    lat: number;
-    lng: number;
-  };
-}
+// Re-export Driver from drivers domain for backward compatibility
+export type { Driver } from "@/lib/domains/drivers/drivers.types";
 
-export interface Zone {
-  id: string; // Display name (e.g., "Zone 1")
-  serverId?: string; // Backend UUID for API calls
-  center: {
-    lat: number;
-    lng: number;
-  };
-  orders: Order[];
-  orderCount: number;
-  assignedDriverId?: string; // Driver assigned to all orders in this zone
-}
+// Re-export Zone from zones domain for backward compatibility
+export type { Zone } from "@/lib/domains/zones/zones.types";
 
 export interface Dispatch {
   id: string;

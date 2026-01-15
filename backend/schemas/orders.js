@@ -96,8 +96,17 @@ export const GetOrdersResponseSchema = z.object({
 export const CreateOrdersResponseSchema = z.object({
   success: z.boolean(),
   created: z.number(),
+  skipped: z.number(),
   failed: z.number(),
   orders: z.array(OrderSchema),
+  skippedOrders: z
+    .array(
+      z.object({
+        order: z.string(),
+        reason: z.string(),
+      })
+    )
+    .optional(),
   errors: z
     .array(
       z.object({

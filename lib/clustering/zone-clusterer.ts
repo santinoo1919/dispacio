@@ -93,18 +93,14 @@ export class ZoneClusterer {
     this.clusterer.load(features);
 
     const bbox = this.computeBoundingBox(withCoords);
-    // Higher zoom level = smaller zones (more zones)
-    // Adjust based on order count: more orders = higher zoom = more zones
+    // Lower zoom level = larger zones (fewer zones)
+    // We want fewer, larger zones, not many small ones
     const orderCount = withCoords.length;
-    let zoomLevel = 11; // Default: medium-high zoom for better zone splitting
-    if (orderCount > 20) {
-      zoomLevel = 12; // High zoom for many orders = many small zones
-    } else if (orderCount > 10) {
-      zoomLevel = 11; // Medium-high zoom for medium orders (10-20) = ~3-4 zones
-    } else if (orderCount > 5) {
-      zoomLevel = 10; // Medium zoom for 5-10 orders = ~2-3 zones
+    let zoomLevel = 9; // Default: lower zoom = fewer zones
+    if (orderCount > 50) {
+      zoomLevel = 10; // Slightly higher for very many orders, but still fewer zones
     } else {
-      zoomLevel = 9; // Lower zoom for few orders = 1-2 zones
+      zoomLevel = 9; // Always use lower zoom for fewer, larger zones
     }
     const clusters = this.clusterer.getClusters(
       bbox,

@@ -3,7 +3,6 @@
  * Converts between backend API format and frontend format
  */
 
-import { DRIVERS } from "@/lib/data/drivers";
 import { Order, Zone } from "@/lib/types";
 import { findNearestDriver } from "@/lib/utils/distance";
 
@@ -46,14 +45,12 @@ export function transformZone(
   if (driverIds.size === 1) {
     // All orders have same driver
     assignedDriverId = Array.from(driverIds)[0];
-  } else if (autoAssignDriver) {
+  } else if (autoAssignDriver && drivers) {
     // Use geographic matching for UI display only
-    // Prefer API drivers, fallback to hardcoded for backward compatibility
+    // Only use drivers if provided (no hardcoded fallback)
     const driversToUse = drivers
-      ? drivers
-          .filter((d) => d.location != null)
-          .map((d) => ({ id: d.id, location: d.location! }))
-      : DRIVERS;
+      .filter((d) => d.location != null)
+      .map((d) => ({ id: d.id, location: d.location! }));
     if (driversToUse.length > 0) {
       const nearestDriverId = findNearestDriver(apiZone.center, driversToUse);
       if (nearestDriverId) {

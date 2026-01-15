@@ -4,17 +4,12 @@
  */
 
 import { ZoneClusterer } from "@/lib/clustering/zone-clusterer";
-import { getBackendDriverId } from "@/lib/data/drivers";
-import {
-  assignDriverToZone,
-  createZones,
-  fetchZones,
-} from "@/lib/services/api";
-import { transformOrder } from "@/lib/transformers/orders";
-import { transformZone } from "@/lib/transformers/zones";
-import { Order, Zone } from "@/lib/types";
+import { getZonesService } from "@/lib/domains/zones/zones.service";
+import { getOrdersService } from "@/lib/domains/orders/orders.service";
+import type { Zone, CreateZoneRequest } from "@/lib/domains/zones/zones.types";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useDrivers } from "@/hooks/use-drivers";
 
 const zoneClusterer = new ZoneClusterer();
 
@@ -23,22 +18,24 @@ const zoneClusterer = new ZoneClusterer();
  * Auto-creates zones if orders exist but no zones are present
  */
 export function useZones() {
-  return useQuery({
-    queryKey: ["zones"],
-    queryFn: async () => {
-      // Fetch zones from backend
-      const zonesResponse = await fetchZones();
+  const { data: drivers } = useDrivers({ isActive: true });
+  const zonesService = getZonesService();
+  const ordersService = getOrdersService();
 
-      // Fetch orders to populate zone orders
-      const { fetchOrders } = await import("@/lib/services/api");
-      const apiOrders = await fetchOrders();
-      const orders: Order[] = apiOrders.map(transformOrder);
+  return useQuery({
+    queryKey: ["zones", drivers],
+    queryFn: async () => {
+      // Fetch orders first to populate zone orders
+      const orders = await ordersService.getOrders();
+
+      // Fetch zones from service
+      let zones = await zonesService.getZones(orders, drivers || []);
 
       // If no zones exist but orders do, create zones automatically
-      if (zonesResponse.zones.length === 0 && orders.length > 0) {
+      if (zones.length === 0 && orders.length > 0) {
         // Auto-create zones for existing orders
         const clusteredZones = zoneClusterer.clusterOrders(orders);
-        const zonesToCreate = clusteredZones.map((zone) => ({
+        const zonesToCreate: CreateZoneRequest[] = clusteredZones.map((zone) => ({
           name: zone.id,
           center: zone.center,
           orderIds: zone.orders
@@ -47,17 +44,13 @@ export function useZones() {
         }));
 
         if (zonesToCreate.length > 0) {
-          const createResult = await createZones(zonesToCreate);
-          // Convert created zones to frontend format using transformer
-          const newZones = createResult.zones.map((z) =>
-            transformZone(z, orders)
-          );
-          return newZones;
+          zones = await zonesService.createZones(zonesToCreate);
+          // Re-fetch with orders populated
+          zones = await zonesService.getZones(orders, drivers || []);
         }
       }
 
-      // Convert backend zones to frontend format
-      return zonesResponse.zones.map((z) => transformZone(z, orders, true));
+      return zones;
     },
   });
 }
@@ -67,18 +60,19 @@ export function useZones() {
  */
 export function useCreateZones() {
   const queryClient = useQueryClient();
+  const zonesService = getZonesService();
 
   return useMutation({
-    mutationFn: async (zones: Parameters<typeof createZones>[0]) => {
-      return createZones(zones);
+    mutationFn: async (zones: CreateZoneRequest[]) => {
+      return zonesService.createZones(zones);
     },
-    onSuccess: (data) => {
+    onSuccess: (zones) => {
       // Invalidate zones and orders to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ["zones"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       showToast.success(
         "Zones Created",
-        `Created ${data.created} zones successfully`
+        `Created ${zones.length} zones successfully`
       );
     },
     onError: (error) => {
@@ -96,14 +90,15 @@ export function useCreateZones() {
  */
 export function useAssignDriverToZone() {
   const queryClient = useQueryClient();
+  const zonesService = getZonesService();
 
   return useMutation({
     mutationFn: async ({
       zoneId,
       driverId,
     }: {
-      zoneId: string; // Frontend zone ID (display name)
-      driverId: string; // Frontend driver ID
+      zoneId: string; // Frontend zone ID (display name) or serverId
+      driverId: string; // Backend driver UUID
     }) => {
       // Get zone to find serverId
       const zones = queryClient.getQueryData<Zone[]>(["zones"]);
@@ -112,12 +107,8 @@ export function useAssignDriverToZone() {
         throw new Error(`Zone ${zoneId} not found or missing serverId`);
       }
 
-      const backendDriverId = getBackendDriverId(driverId);
-      if (!backendDriverId) {
-        throw new Error(`No backend driver ID found for ${driverId}`);
-      }
-
-      return assignDriverToZone(zone.serverId, backendDriverId);
+      // Driver ID is now backend UUID directly, no conversion needed
+      return zonesService.assignDriverToZone(zone.serverId, driverId);
     },
     onMutate: async ({ zoneId, driverId }) => {
       // Cancel outgoing queries

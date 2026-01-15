@@ -79,7 +79,7 @@ ORD-002,Jane Smith,456 Oak Ave,€30.00`;
       expect(result.orders[1].amount).toBe(30.0);
     });
 
-    it('should assign ranks to orders sequentially', () => {
+    it('should not assign ranks to new CSV orders (ranks set after optimization)', () => {
       const csv = `id,customer,address
 ORD-001,John Doe,123 Main St
 ORD-002,Jane Smith,456 Oak Ave
@@ -89,9 +89,11 @@ ORD-003,Bob Johnson,789 Pine Rd`;
 
       expect(result.success).toBe(true);
       expect(result.orders).toHaveLength(3);
-      expect(result.orders[0].rank).toBe(1);
-      expect(result.orders[1].rank).toBe(2);
-      expect(result.orders[2].rank).toBe(3);
+      // New CSV orders should NOT have ranks assigned
+      // Ranks are only set after route optimization
+      expect(result.orders[0].rank).toBeUndefined();
+      expect(result.orders[1].rank).toBeUndefined();
+      expect(result.orders[2].rank).toBeUndefined();
     });
 
     it('should filter out orders with missing required fields', () => {

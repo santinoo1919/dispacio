@@ -4,7 +4,6 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getBackendDriverId } from "@/lib/data/drivers";
 import { optimizeRoute } from "@/lib/services/api";
 import { showToast } from "@/lib/utils/toast";
 
@@ -19,14 +18,11 @@ export function useOptimizeRoute() {
       driverId,
       orderIds,
     }: {
-      driverId: string; // Frontend driver ID
+      driverId: string; // Backend driver UUID
       orderIds?: string[];
     }) => {
-      const backendDriverId = getBackendDriverId(driverId);
-      if (!backendDriverId) {
-        throw new Error(`No backend driver ID found for ${driverId}`);
-      }
-      return optimizeRoute(backendDriverId, orderIds);
+      // Driver ID is now backend UUID directly, no conversion needed
+      return optimizeRoute(driverId, orderIds);
     },
     onSuccess: (data) => {
       // Invalidate orders to get updated ranks

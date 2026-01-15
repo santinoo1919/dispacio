@@ -43,6 +43,32 @@ export async function buildTestApp() {
 }
 
 /**
+ * Properly close Fastify app and PostgreSQL connection pool
+ * This ensures all database connections are released
+ * @param {FastifyInstance} app - Fastify app instance
+ */
+export async function closeTestApp(app) {
+  if (!app) return;
+
+  try {
+    // Close PostgreSQL pool explicitly
+    if (app.pg && app.pg.pool) {
+      await app.pg.pool.end();
+    }
+    // Close Fastify app
+    await app.close();
+  } catch (error) {
+    console.warn("Error closing test app:", error.message);
+    // Force close if graceful close fails
+    try {
+      await app.close();
+    } catch {
+      // Ignore errors on force close
+    }
+  }
+}
+
+/**
  * Clean all tables before each test
  * Uses TRUNCATE for fast, reliable cleanup with real PostgreSQL
  * @param {FastifyInstance} app - Fastify app instance

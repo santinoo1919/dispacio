@@ -3,7 +3,7 @@
  */
 
 import { Order } from "@/lib/types";
-import { Driver } from "@/lib/types";
+import type { Driver } from "@/lib/domains/drivers/drivers.types";
 import * as Linking from "expo-linking";
 
 export function generateMapsLink(
