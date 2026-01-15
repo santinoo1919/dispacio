@@ -6,7 +6,6 @@
 import { CSVParser } from "@/lib/csv/parser";
 import { useCreateOrders } from "@/hooks/use-orders";
 import { useCreateZones } from "@/hooks/use-zones";
-import { transformOrderToApi } from "@/lib/transformers/orders";
 import { useDispatchStore } from "@/store/dispatch-store";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -29,43 +28,17 @@ export default function PasteCSVScreen() {
       return;
     }
 
-    // Convert to API format using transformer
-    const apiOrders = result.orders.map(transformOrderToApi);
-
-    // Upload to backend
-    const uploadResult = await createOrdersMutation.mutateAsync(apiOrders);
+    // Upload to backend (hook now accepts domain Order[] directly)
+    const uploadResult = await createOrdersMutation.mutateAsync(result.orders);
 
     if (uploadResult.success) {
       // Cluster orders and create zones in backend
       const { ZoneClusterer } = await import("@/lib/clustering/zone-clusterer");
-      const { getFrontendDriverId } = await import("@/lib/data/drivers");
       const zoneClusterer = new ZoneClusterer();
 
-      // Convert uploaded orders to local format for clustering
-      const localOrders = uploadResult.orders.map((o) => ({
-        id: o.order_number || o.id,
-        customerName: o.customer_name,
-        address: o.address,
-        phone: o.phone,
-        notes: o.notes,
-        amount: o.amount,
-        items: o.items,
-        priority: (o.priority as "low" | "normal" | "high") || "normal",
-        rank: o.route_rank || 0,
-        driverId: getFrontendDriverId(o.driver_id) || undefined,
-        latitude: o.latitude,
-        longitude: o.longitude,
-        packageLength: o.package_length,
-        packageWidth: o.package_width,
-        packageHeight: o.package_height,
-        packageWeight: o.package_weight,
-        packageVolume: o.package_volume,
-        serverId: o.id,
-        rawData: o.raw_data || {},
-      }));
-
+      // Upload result already contains domain Order[] format
       // Cluster orders locally
-      const clusteredZones = zoneClusterer.clusterOrders(localOrders);
+      const clusteredZones = zoneClusterer.clusterOrders(uploadResult.orders);
 
       // Create zones in backend with order assignments
       const zonesToCreate = clusteredZones.map((zone) => ({

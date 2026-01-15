@@ -1,6 +1,8 @@
-import { ApiOrder, transformOrder, transformOrderToApi } from "../orders";
+import type { ApiOrder } from "@/lib/domains/orders/orders.types";
+import { toDomain, toApi } from "@/lib/domains/orders/orders.transformer";
+import { getBackendDriverId } from "@/lib/data/drivers";
 
-describe("transformOrder", () => {
+describe("toDomain", () => {
   it("maps API fields to frontend Order correctly", () => {
     const api: ApiOrder = {
       id: "uuid-1",
@@ -24,7 +26,7 @@ describe("transformOrder", () => {
       raw_data: { any: "thing" },
     };
 
-    const order = transformOrder(api);
+    const order = toDomain(api);
     expect(order.id).toBe("ORD-001");
     expect(order.customerName).toBe("John Doe");
     expect(order.address).toBe("123 Main St");
@@ -52,14 +54,14 @@ describe("transformOrder", () => {
       customer_name: "Jane",
       address: "456 Oak",
     } as any;
-    const order = transformOrder(api);
+    const order = toDomain(api);
     expect(order.id).toBe("uuid-2"); // fallback to id when order_number missing
     expect(order.priority).toBe("normal");
     expect(order.rank).toBeUndefined();
   });
 });
 
-describe("transformOrderToApi", () => {
+describe("toApi", () => {
   it("maps frontend Order to API fields correctly", () => {
     const order = {
       id: "ORD-123",
@@ -81,7 +83,7 @@ describe("transformOrderToApi", () => {
       rank: 5,
       rawData: { ok: true },
     };
-    const api = transformOrderToApi(order as any);
+    const api = toApi(order as any, getBackendDriverId);
     expect(api.order_number).toBe("ORD-123");
     expect(api.customer_name).toBe("Sam");
     expect(api.address).toBe("789 Pine");

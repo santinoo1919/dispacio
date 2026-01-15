@@ -1,19 +1,11 @@
 /**
  * React Query hooks for orders
- * Handles fetching, creating, updating, and deleting orders
+ * Thin layer that wraps OrdersService with React Query
  */
 
-import { getBackendDriverId } from "@/lib/data/drivers";
-import {
-  bulkAssignDriver,
-  createOrders,
-  deleteOrder,
-  fetchOrder,
-  fetchOrders,
-  isConflictError,
-  updateOrder,
-} from "@/lib/services/api";
-import { transformOrder } from "@/lib/transformers/orders";
+import { getOrdersService } from "@/lib/domains/orders/orders.service";
+import { isConflictError } from "@/lib/domains/orders/orders.errors";
+import type { Order } from "@/lib/domains/orders/orders.types";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -22,18 +14,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
  * @param driverId Optional frontend driver ID to filter orders
  */
 export function useOrders(driverId?: string) {
+  const ordersService = getOrdersService();
+
   return useQuery({
     queryKey: driverId ? ["orders", driverId] : ["orders"],
-    queryFn: async () => {
-      // Convert frontend driver ID to backend UUID if filtering
-      let backendDriverId: string | undefined;
-      if (driverId) {
-        backendDriverId = getBackendDriverId(driverId) || undefined;
-      }
-
-      const apiOrders = await fetchOrders(backendDriverId);
-      return apiOrders.map(transformOrder);
-    },
+    queryFn: () => ordersService.getOrders(driverId),
   });
 }
 
@@ -42,12 +27,11 @@ export function useOrders(driverId?: string) {
  * @param orderId Order UUID from backend (serverId)
  */
 export function useOrder(orderId: string) {
+  const ordersService = getOrdersService();
+
   return useQuery({
     queryKey: ["orders", orderId],
-    queryFn: async () => {
-      const apiOrder = await fetchOrder(orderId);
-      return transformOrder(apiOrder);
-    },
+    queryFn: () => ordersService.getOrder(orderId),
     enabled: !!orderId,
   });
 }
@@ -57,10 +41,11 @@ export function useOrder(orderId: string) {
  */
 export function useCreateOrders() {
   const queryClient = useQueryClient();
+  const ordersService = getOrdersService();
 
   return useMutation({
-    mutationFn: async (orders: Parameters<typeof createOrders>[0]) => {
-      return createOrders(orders);
+    mutationFn: async (orders: Order[]) => {
+      return ordersService.createOrders(orders);
     },
     onSuccess: (data) => {
       // Invalidate orders and zones to refetch fresh data
@@ -85,6 +70,7 @@ export function useCreateOrders() {
  */
 export function useUpdateOrder() {
   const queryClient = useQueryClient();
+  const ordersService = getOrdersService();
 
   return useMutation({
     mutationFn: async ({
@@ -92,9 +78,9 @@ export function useUpdateOrder() {
       updates,
     }: {
       orderId: string;
-      updates: Parameters<typeof updateOrder>[1];
+      updates: Partial<Order>;
     }) => {
-      return updateOrder(orderId, updates);
+      return ordersService.updateOrder(orderId, updates);
     },
     onSuccess: (data, variables) => {
       // Invalidate specific order and all orders
@@ -130,6 +116,7 @@ export function useUpdateOrder() {
  */
 export function useBulkAssignDriver() {
   const queryClient = useQueryClient();
+  const ordersService = getOrdersService();
 
   return useMutation({
     mutationFn: async ({
@@ -139,11 +126,7 @@ export function useBulkAssignDriver() {
       orderIds: string[];
       driverId: string; // Frontend driver ID
     }) => {
-      const backendDriverId = getBackendDriverId(driverId);
-      if (!backendDriverId) {
-        throw new Error(`No backend driver ID found for ${driverId}`);
-      }
-      return bulkAssignDriver(orderIds, backendDriverId);
+      return ordersService.assignDriverToOrders(orderIds, driverId);
     },
     onSuccess: () => {
       // Invalidate orders and zones to refetch with updated driver assignments
@@ -164,10 +147,11 @@ export function useBulkAssignDriver() {
  */
 export function useDeleteOrder() {
   const queryClient = useQueryClient();
+  const ordersService = getOrdersService();
 
   return useMutation({
     mutationFn: async (orderId: string) => {
-      return deleteOrder(orderId);
+      return ordersService.deleteOrder(orderId);
     },
     onMutate: async (orderId) => {
       // Optimistic update: Cancel outgoing queries

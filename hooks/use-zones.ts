@@ -10,9 +10,10 @@ import {
   createZones,
   fetchZones,
 } from "@/lib/services/api";
-import { transformOrder } from "@/lib/transformers/orders";
+import { toDomainMany } from "@/lib/domains/orders/orders.transformer";
 import { transformZone } from "@/lib/transformers/zones";
-import { Order, Zone } from "@/lib/types";
+import type { Order } from "@/lib/domains/orders/orders.types";
+import { Zone } from "@/lib/types";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -30,9 +31,9 @@ export function useZones() {
       const zonesResponse = await fetchZones();
 
       // Fetch orders to populate zone orders
-      const { fetchOrders } = await import("@/lib/services/api");
-      const apiOrders = await fetchOrders();
-      const orders: Order[] = apiOrders.map(transformOrder);
+      const { getOrdersService } = await import("@/lib/domains/orders/orders.service");
+      const ordersService = getOrdersService();
+      const orders: Order[] = await ordersService.getOrders();
 
       // If no zones exist but orders do, create zones automatically
       if (zonesResponse.zones.length === 0 && orders.length > 0) {
