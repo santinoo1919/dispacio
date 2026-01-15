@@ -49,7 +49,7 @@ export function toApi(
     notes: order.notes,
     amount: order.amount,
     items: order.items,
-    priority: order.priority,
+    priority: order.priority || "normal",
     package_length: order.packageLength,
     package_width: order.packageWidth,
     package_height: order.packageHeight,
@@ -61,7 +61,10 @@ export function toApi(
       ? getBackendDriverId(order.driverId) || undefined
       : undefined,
     route_rank: order.rank,
-    rawData: order.rawData,
+    // Only include rawData if it exists and has content
+    rawData: order.rawData && Object.keys(order.rawData).length > 0 
+      ? order.rawData 
+      : undefined,
   };
 }
 
