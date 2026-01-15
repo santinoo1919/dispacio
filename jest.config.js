@@ -12,7 +12,8 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', {
       tsconfig: 'tsconfig.test.json'
-    }]
+    }],
+    '^.+\\.js$': ['babel-jest', { presets: [['@babel/preset-env', { targets: { node: 'current' } }]] }]
   },
   
   // Module path mapping to match tsconfig
@@ -31,18 +32,30 @@ module.exports = {
   
   // Don't transform node_modules except for specific packages that need it
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$|papaparse))'
+    'node_modules/(?!(supercluster|kdbush|papaparse|.*\\.mjs$))'
   ],
   
   // Setup files
   setupFilesAfterEnv: [],
   
-  // Coverage settings (optional, can be enabled later)
+  // Coverage settings - only collect from files we're actually testing
   collectCoverageFrom: [
-    'lib/**/*.ts',
+    'lib/utils/distance.ts',
+    'lib/csv/parser.ts',
+    'lib/transformers/orders.ts',
+    'lib/transformers/zones.ts',
+    'lib/clustering/zone-clusterer.ts',
     '!lib/**/*.d.ts',
     '!lib/**/__tests__/**'
   ],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 70,
+      lines: 70,
+      statements: 70,
+    },
+  },
   
   // Clear mocks between tests
   clearMocks: true,

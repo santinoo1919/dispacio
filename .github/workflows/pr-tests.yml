@@ -1,6 +1,7 @@
 name: PR Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - main
@@ -11,10 +12,21 @@ on:
       - master
 
 jobs:
+  # Avoid duplicate concurrent runs on same ref (lightweight concurrency control)
+  _concurrency:
+    name: Concurrency Guard
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Concurrency guard"
+    concurrency:
+      group: pr-tests-${{ github.ref }}
+      cancel-in-progress: true
+
   frontend-tests:
     name: Frontend Tests
     runs-on: ubuntu-latest
-    
+    needs: _concurrency
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,8 +34,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install frontend dependencies
         run: npm ci
@@ -35,12 +47,36 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Run tests
-        run: npm test
+        run: npm run test:ci
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-frontend
+          path: coverage/**
 
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+    needs: _concurrency
+
+    # PostgreSQL service for tests
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dispacio_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,8 +84,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
@@ -60,10 +96,15 @@ jobs:
         working-directory: ./backend
         run: node --check server.js
 
+      - name: Run backend tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dispacio_test
+        run: npm run test:ci
+
       - name: Check Dockerfile syntax
         working-directory: ./backend
         run: |
           if command -v docker &> /dev/null; then
             docker build --dry-run -t test-image . || echo "Docker not available in CI, skipping"
           fi
-
