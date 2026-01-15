@@ -58,8 +58,9 @@ export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
 
     // Driver ID is now backend UUID directly, no conversion needed
     if (assignedDriverId && orderIds.length > 0) {
-      const { bulkAssignDriver } = await import("@/lib/services/api");
-      await bulkAssignDriver(orderIds, assignedDriverId).catch(() => {});
+      const { getOrdersService } = await import("@/lib/domains/orders/orders.service");
+      const ordersService = getOrdersService();
+      await ordersService.assignDriverToOrders(orderIds, assignedDriverId).catch(() => {});
     }
 
     await optimizeRouteMutation.mutateAsync({

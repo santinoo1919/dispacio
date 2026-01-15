@@ -13,53 +13,9 @@
 // Create .env.local for local overrides (gitignored)
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
 
-export interface Order {
-  id: string;
-  order_number: string;
-  customer_name: string;
-  address: string;
-  phone?: string;
-  notes?: string;
-  amount?: number;
-  items?: string;
-  priority?: string;
-  package_length?: number;
-  package_width?: number;
-  package_height?: number;
-  package_weight?: number;
-  package_volume?: number;
-  latitude?: number;
-  longitude?: number;
-  driver_id?: string;
-  route_rank?: number;
-  version?: number; // Optimistic locking
-  created_at?: string;
-  updated_at?: string;
-  raw_data?: any;
-}
-
-export interface CreateOrderRequest {
-  order_number: string;
-  customer_name: string;
-  address: string;
-  phone?: string;
-  notes?: string;
-  amount?: number;
-  items?: string;
-  priority?: string;
-  package_length?: number;
-  package_width?: number;
-  package_height?: number;
-  package_weight?: number;
-  package_volume?: number;
-  latitude?: number;
-  longitude?: number;
-  driver_id?: string;
-  route_rank?: number;
-  version?: number; // For optimistic locking on updates
-  rawData?: Record<string, any>;
-}
-
+/**
+ * Response from route optimization endpoint
+ */
 export interface OptimizeRouteResponse {
   success: boolean;
   driverId: string;
@@ -95,8 +51,9 @@ export function isConflictError(error: unknown): error is Error & { status: 409;
 
 /**
  * Make API request with error handling
+ * Exported for use by domain repositories
  */
-async function apiRequest<T>(
+export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
@@ -144,87 +101,15 @@ async function apiRequest<T>(
 }
 
 /**
- * Fetch orders from API
- * @param driverId Optional driver ID to filter orders
+ * Order-related functions have been moved to OrdersService
+ * @deprecated Use OrdersService from @/lib/domains/orders/orders.service instead
+ * - fetchOrders → OrdersService.getOrders()
+ * - fetchOrder → OrdersService.getOrder()
+ * - createOrders → OrdersService.createOrders()
+ * - updateOrder → OrdersService.updateOrder()
+ * - deleteOrder → OrdersService.deleteOrder()
+ * - bulkAssignDriver → OrdersService.assignDriverToOrders()
  */
-export async function fetchOrders(driverId?: string): Promise<Order[]> {
-  const endpoint = driverId
-    ? `/api/orders?driver_id=${driverId}`
-    : "/api/orders";
-  const response = await apiRequest<{ orders: Order[] }>(endpoint);
-  return response.orders;
-}
-
-/**
- * Fetch a single order by ID
- * @param orderId Order UUID from backend
- */
-export async function fetchOrder(orderId: string): Promise<Order> {
-  return apiRequest<Order>(`/api/orders/${orderId}`);
-}
-
-/**
- * Create orders (bulk from CSV)
- * @param orders Array of orders to create
- */
-export async function createOrders(orders: CreateOrderRequest[]): Promise<{
-  success: boolean;
-  created: number;
-  failed: number;
-  orders: Order[];
-  errors?: { order: string; error: string }[];
-}> {
-  return apiRequest("/api/orders", {
-    method: "POST",
-    body: JSON.stringify({ orders }),
-  });
-}
-
-/**
- * Update order
- * @param orderId Order ID to update
- * @param updates Partial order data to update
- */
-export async function updateOrder(
-  orderId: string,
-  updates: Partial<CreateOrderRequest>
-): Promise<Order> {
-  return apiRequest(`/api/orders/${orderId}`, {
-    method: "PUT",
-    body: JSON.stringify(updates),
-  });
-}
-
-/**
- * Bulk assign driver to multiple orders
- * @param orderIds Array of order UUIDs to assign driver to
- * @param driverId Backend driver UUID
- */
-export async function bulkAssignDriver(
-  orderIds: string[],
-  driverId: string
-): Promise<{
-  success: boolean;
-  updated: number;
-  orderIds: string[];
-}> {
-  return apiRequest("/api/orders/bulk-assign-driver", {
-    method: "PUT",
-    body: JSON.stringify({ orderIds, driverId }),
-  });
-}
-
-/**
- * Delete order
- * @param orderId Order ID to delete
- */
-export async function deleteOrder(
-  orderId: string
-): Promise<{ success: boolean; id: string }> {
-  return apiRequest(`/api/orders/${orderId}`, {
-    method: "DELETE",
-  });
-}
 
 /**
  * Optimize route for a driver using VROOM
@@ -253,215 +138,19 @@ export async function healthCheck(): Promise<{
 }
 
 /**
- * Zone-related API functions
- * @deprecated Use domain types from @/lib/domains/zones/zones.types instead
- * These types and functions are kept for backward compatibility but should not be used in new code.
- * Components should only use domain types (Zone), not API types.
- * Use ZonesService from @/lib/domains/zones/zones.service instead of these functions.
+ * Zone-related functions have been moved to ZonesService
+ * @deprecated Use ZonesService from @/lib/domains/zones/zones.service instead
+ * - fetchZones → ZonesService.getZones()
+ * - createZones → ZonesService.createZones()
+ * - assignDriverToZone → ZonesService.assignDriverToZone()
  */
 
 /**
- * @deprecated Use Zone from @/lib/domains/zones/zones.types instead
+ * Driver-related functions have been moved to DriversService
+ * @deprecated Use DriversService from @/lib/domains/drivers/drivers.service instead
+ * - fetchDrivers → DriversService.getDrivers()
+ * - fetchDriver → DriversService.getDriver()
+ * - createDriver → DriversService.createDriver()
+ * - updateDriver → DriversService.updateDriver()
+ * - deleteDriver → DriversService.deleteDriver()
  */
-export interface Zone {
-  id: string;
-  name: string;
-  center: { lat: number; lng: number };
-  radius?: number | null;
-  orders: Order[];
-  orderCount: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/**
- * @deprecated Use CreateZoneRequest from @/lib/domains/zones/zones.types instead
- */
-export interface CreateZoneInput {
-  name: string;
-  center: { lat: number; lng: number };
-  radius?: number;
-  orderIds: string[];
-}
-
-/**
- * Get all zones with their orders
- * @deprecated Use ZonesService.getZones() from @/lib/domains/zones/zones.service instead
- */
-export async function fetchZones(): Promise<{ zones: Zone[] }> {
-  return apiRequest("/api/zones");
-}
-
-/**
- * Create zones from clustering
- * @deprecated Use ZonesService.createZones() from @/lib/domains/zones/zones.service instead
- * @param zones Array of zone data with order IDs
- */
-export async function createZones(zones: CreateZoneInput[]): Promise<{
-  success: boolean;
-  created: number;
-  zones: Zone[];
-}> {
-  return apiRequest("/api/zones", {
-    method: "POST",
-    body: JSON.stringify({ zones }),
-  });
-}
-
-/**
- * Assign driver to all orders in a zone
- * @deprecated Use ZonesService.assignDriverToZone() from @/lib/domains/zones/zones.service instead
- * @param zoneId Zone UUID
- * @param driverId Backend driver UUID
- */
-export async function assignDriverToZone(
-  zoneId: string,
-  driverId: string
-): Promise<{
-  success: boolean;
-  zoneId: string;
-  driverId: string;
-  updated: number;
-  orderIds: string[];
-}> {
-  return apiRequest(`/api/zones/${zoneId}/assign-driver`, {
-    method: "PUT",
-    body: JSON.stringify({ driverId }),
-  });
-}
-
-/**
- * Driver-related API functions
- * @deprecated Use domain types from @/lib/domains/drivers/drivers.types instead
- * These types are kept for backward compatibility but should not be used in new code.
- * Components should only use domain types (Driver), not API types (ApiDriver).
- */
-
-/**
- * @deprecated Use ApiDriver from @/lib/domains/drivers/drivers.types instead
- */
-export interface ApiDriver {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string | null;
-  initials?: string | null;
-  color?: string | null;
-  location?: { lat: number; lng: number } | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at?: string | null;
-}
-
-/**
- * @deprecated Use CreateDriverRequest from @/lib/domains/drivers/drivers.types instead
- */
-export interface CreateDriverRequest {
-  name: string;
-  phone: string;
-  email?: string;
-  initials?: string;
-  color?: string;
-  location?: { lat: number; lng: number };
-  is_active?: boolean;
-}
-
-/**
- * @deprecated Use UpdateDriverRequest from @/lib/domains/drivers/drivers.types instead
- */
-export interface UpdateDriverRequest {
-  name?: string;
-  phone?: string;
-  email?: string;
-  initials?: string;
-  color?: string;
-  location?: { lat: number; lng: number };
-  is_active?: boolean;
-}
-
-/**
- * @deprecated Use GetDriversResponse from @/lib/domains/drivers/drivers.types instead
- */
-export interface GetDriversResponse {
-  drivers: ApiDriver[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-/**
- * Get all drivers
- * @deprecated Use DriversRepository.findAll() from @/lib/domains/drivers/drivers.repository instead
- * @param is_active Optional filter for active drivers only
- * @param limit Pagination limit
- * @param offset Pagination offset
- */
-export async function fetchDrivers(
-  options?: {
-    is_active?: boolean;
-    limit?: number;
-    offset?: number;
-  }
-): Promise<GetDriversResponse> {
-  const params = new URLSearchParams();
-  if (options?.is_active !== undefined) {
-    params.append("is_active", String(options.is_active));
-  }
-  if (options?.limit) params.append("limit", String(options.limit));
-  if (options?.offset) params.append("offset", String(options.offset));
-
-  const query = params.toString();
-  return apiRequest(`/api/drivers${query ? `?${query}` : ""}`);
-}
-
-/**
- * Get a single driver by ID
- * @deprecated Use DriversRepository.findById() from @/lib/domains/drivers/drivers.repository instead
- * @param driverId Driver UUID
- */
-export async function fetchDriver(driverId: string): Promise<ApiDriver> {
-  return apiRequest(`/api/drivers/${driverId}`);
-}
-
-/**
- * Create a new driver
- * @deprecated Use DriversService.createDriver() from @/lib/domains/drivers/drivers.service instead
- * @param driver Driver data
- */
-export async function createDriver(
-  driver: CreateDriverRequest
-): Promise<ApiDriver> {
-  return apiRequest("/api/drivers", {
-    method: "POST",
-    body: JSON.stringify(driver),
-  });
-}
-
-/**
- * Update a driver
- * @deprecated Use DriversService.updateDriver() from @/lib/domains/drivers/drivers.service instead
- * @param driverId Driver UUID
- * @param updates Partial driver data to update
- */
-export async function updateDriver(
-  driverId: string,
-  updates: UpdateDriverRequest
-): Promise<ApiDriver> {
-  return apiRequest(`/api/drivers/${driverId}`, {
-    method: "PUT",
-    body: JSON.stringify(updates),
-  });
-}
-
-/**
- * Delete a driver
- * @deprecated Use DriversService.deleteDriver() from @/lib/domains/drivers/drivers.service instead
- * @param driverId Driver UUID
- */
-export async function deleteDriver(
-  driverId: string
-): Promise<{ success: boolean; id: string }> {
-  return apiRequest(`/api/drivers/${driverId}`, {
-    method: "DELETE",
-  });
-}
