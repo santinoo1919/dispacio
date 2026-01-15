@@ -4,9 +4,9 @@
  */
 
 import { Card } from "@/components/ui/card";
+import { useDrivers } from "@/hooks/use-drivers";
 import { useOptimizeRoute } from "@/hooks/use-routes";
 import { getDriversService } from "@/lib/domains/drivers/drivers.service";
-import { useDrivers } from "@/hooks/use-drivers";
 import { Zone } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
@@ -58,9 +58,13 @@ export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
 
     // Driver ID is now backend UUID directly, no conversion needed
     if (assignedDriverId && orderIds.length > 0) {
-      const { getOrdersService } = await import("@/lib/domains/orders/orders.service");
+      const { getOrdersService } = await import(
+        "@/lib/domains/orders/orders.service"
+      );
       const ordersService = getOrdersService();
-      await ordersService.assignDriverToOrders(orderIds, assignedDriverId).catch(() => {});
+      await ordersService
+        .assignDriverToOrders(orderIds, assignedDriverId)
+        .catch(() => {});
     }
 
     await optimizeRouteMutation.mutateAsync({
