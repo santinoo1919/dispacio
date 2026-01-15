@@ -11,6 +11,7 @@ import {
   useDrivers,
   useUpdateDriver,
 } from "@/hooks/use-drivers";
+import type { CreateDriverRequest, UpdateDriverRequest } from "@/lib/domains/drivers/drivers.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
@@ -25,7 +26,7 @@ import {
 } from "react-native";
 
 export default function DriversScreen() {
-  const { data: drivers, isLoading } = useDrivers({ is_active: true });
+  const { data: drivers, isLoading } = useDrivers({ isActive: true });
   const createDriver = useCreateDriver();
   const updateDriver = useUpdateDriver();
   const deleteDriver = useDeleteDriver();
@@ -45,21 +46,26 @@ export default function DriversScreen() {
       return;
     }
 
-    const driverData = {
-      name: formData.name,
-      phone: formData.phone,
-      // Store location name in email field for now (will be proper field later)
-      email: formData.locationName || undefined,
-    };
-
     if (editingId) {
+      const updateData: UpdateDriverRequest = {
+        name: formData.name,
+        phone: formData.phone,
+        // Store location name in email field for now (will be proper field later)
+        email: formData.locationName || undefined,
+      };
       await updateDriver.mutateAsync({
         driverId: editingId,
-        updates: driverData,
+        updates: updateData,
       });
       setEditingId(null);
     } else {
-      await createDriver.mutateAsync(driverData);
+      const createData: CreateDriverRequest = {
+        name: formData.name,
+        phone: formData.phone,
+        // Store location name in email field for now (will be proper field later)
+        email: formData.locationName || undefined,
+      };
+      await createDriver.mutateAsync(createData);
       setShowAddForm(false);
     }
 

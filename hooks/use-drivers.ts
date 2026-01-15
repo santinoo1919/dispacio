@@ -4,14 +4,25 @@
  */
 
 import { getDriversService } from "@/lib/domains/drivers/drivers.service";
-import type { Driver } from "@/lib/domains/drivers/drivers.types";
+import type { Driver, CreateDriverRequest, UpdateDriverRequest } from "@/lib/domains/drivers/drivers.types";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /**
- * Fetch all drivers (optionally filtered by active status)
+ * Strongly typed options for useDrivers hook
+ * Prevents using snake_case API format (is_active) instead of camelCase (isActive)
  */
-export function useDrivers(options?: { isActive?: boolean }) {
+export interface UseDriversOptions {
+  isActive?: boolean;
+  // Explicitly exclude is_active to prevent accidental usage
+  is_active?: never;
+}
+
+/**
+ * Fetch all drivers (optionally filtered by active status)
+ * Uses strongly typed options to prevent API format mistakes
+ */
+export function useDrivers(options?: UseDriversOptions) {
   const driversService = getDriversService();
 
   return useQuery({
@@ -41,7 +52,7 @@ export function useCreateDriver() {
   const driversService = getDriversService();
 
   return useMutation({
-    mutationFn: (driver: Partial<Driver>) => driversService.createDriver(driver),
+    mutationFn: (driver: CreateDriverRequest) => driversService.createDriver(driver),
     onSuccess: () => {
       // Invalidate drivers list to refetch
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
@@ -69,7 +80,7 @@ export function useUpdateDriver() {
       updates,
     }: {
       driverId: string;
-      updates: Partial<Driver>;
+      updates: UpdateDriverRequest;
     }) => driversService.updateDriver(driverId, updates),
     onSuccess: (data, variables) => {
       // Update cache optimistically

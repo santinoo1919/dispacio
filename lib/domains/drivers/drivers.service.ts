@@ -3,9 +3,9 @@
  * Business logic layer for drivers domain
  */
 
-import type { Driver } from "./drivers.types";
+import type { Driver, CreateDriverRequest, UpdateDriverRequest } from "./drivers.types";
 import { DriversRepository } from "./drivers.repository";
-import { toDomain, toDomainMany, toApi } from "./drivers.transformer";
+import { toDomain, toDomainMany, createRequestToApi, updateRequestToApi } from "./drivers.transformer";
 
 /**
  * Driver colors for visual consistency across dispatch UI and map
@@ -52,9 +52,11 @@ export class DriversService {
 
   /**
    * Create a new driver
+   * TypeScript enforces required fields (name, phone) at compile time
    */
-  async createDriver(driver: Partial<Driver>): Promise<Driver> {
-    const apiDriver = await this.repository.create(toApi(driver));
+  async createDriver(driver: CreateDriverRequest): Promise<Driver> {
+    const apiRequest = createRequestToApi(driver);
+    const apiDriver = await this.repository.create(apiRequest);
     const domainDriver = toDomain(apiDriver);
     
     // Invalidate cache
@@ -68,9 +70,10 @@ export class DriversService {
    */
   async updateDriver(
     driverId: string,
-    updates: Partial<Driver>
+    updates: UpdateDriverRequest
   ): Promise<Driver> {
-    const apiDriver = await this.repository.update(driverId, toApi(updates));
+    const apiRequest = updateRequestToApi(updates);
+    const apiDriver = await this.repository.update(driverId, apiRequest);
     const domainDriver = toDomain(apiDriver);
     
     // Invalidate cache

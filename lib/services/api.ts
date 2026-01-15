@@ -319,8 +319,14 @@ export async function assignDriverToZone(
 
 /**
  * Driver-related API functions
+ * @deprecated Use domain types from @/lib/domains/drivers/drivers.types instead
+ * These types are kept for backward compatibility but should not be used in new code.
+ * Components should only use domain types (Driver), not API types (ApiDriver).
  */
 
+/**
+ * @deprecated Use ApiDriver from @/lib/domains/drivers/drivers.types instead
+ */
 export interface ApiDriver {
   id: string;
   name: string;
@@ -334,6 +340,9 @@ export interface ApiDriver {
   updated_at?: string | null;
 }
 
+/**
+ * @deprecated Use CreateDriverRequest from @/lib/domains/drivers/drivers.types instead
+ */
 export interface CreateDriverRequest {
   name: string;
   phone: string;
@@ -344,6 +353,9 @@ export interface CreateDriverRequest {
   is_active?: boolean;
 }
 
+/**
+ * @deprecated Use UpdateDriverRequest from @/lib/domains/drivers/drivers.types instead
+ */
 export interface UpdateDriverRequest {
   name?: string;
   phone?: string;
@@ -354,6 +366,9 @@ export interface UpdateDriverRequest {
   is_active?: boolean;
 }
 
+/**
+ * @deprecated Use GetDriversResponse from @/lib/domains/drivers/drivers.types instead
+ */
 export interface GetDriversResponse {
   drivers: ApiDriver[];
   total: number;
@@ -363,6 +378,7 @@ export interface GetDriversResponse {
 
 /**
  * Get all drivers
+ * @deprecated Use DriversRepository.findAll() from @/lib/domains/drivers/drivers.repository instead
  * @param is_active Optional filter for active drivers only
  * @param limit Pagination limit
  * @param offset Pagination offset
@@ -387,6 +403,7 @@ export async function fetchDrivers(
 
 /**
  * Get a single driver by ID
+ * @deprecated Use DriversRepository.findById() from @/lib/domains/drivers/drivers.repository instead
  * @param driverId Driver UUID
  */
 export async function fetchDriver(driverId: string): Promise<ApiDriver> {
@@ -395,6 +412,7 @@ export async function fetchDriver(driverId: string): Promise<ApiDriver> {
 
 /**
  * Create a new driver
+ * @deprecated Use DriversService.createDriver() from @/lib/domains/drivers/drivers.service instead
  * @param driver Driver data
  */
 export async function createDriver(
@@ -408,6 +426,7 @@ export async function createDriver(
 
 /**
  * Update a driver
+ * @deprecated Use DriversService.updateDriver() from @/lib/domains/drivers/drivers.service instead
  * @param driverId Driver UUID
  * @param updates Partial driver data to update
  */
@@ -423,6 +442,7 @@ export async function updateDriver(
 
 /**
  * Delete a driver
+ * @deprecated Use DriversService.deleteDriver() from @/lib/domains/drivers/drivers.service instead
  * @param driverId Driver UUID
  */
 export async function deleteDriver(

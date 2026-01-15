@@ -3,7 +3,12 @@
  * Converts between backend API format and domain format
  */
 
-import type { ApiDriver, Driver } from "./drivers.types";
+import type {
+  ApiDriver,
+  Driver,
+  CreateDriverRequest,
+  UpdateDriverRequest,
+} from "./drivers.types";
 
 /**
  * Generate initials from a name
@@ -39,28 +44,23 @@ export function toDomain(apiDriver: ApiDriver): Driver {
 }
 
 /**
- * Transform domain driver format to API request format
+ * Transform CreateDriverRequest to API format
+ * This is a pass-through since CreateDriverRequest already matches API format
  */
-export function toApi(
-  driver: Partial<Driver>
-): {
-  name?: string;
-  phone?: string;
-  email?: string;
-  initials?: string;
-  color?: string;
-  location?: { lat: number; lng: number };
-  is_active?: boolean;
-} {
-  const api: any = {};
-  if (driver.name !== undefined) api.name = driver.name;
-  if (driver.phone !== undefined) api.phone = driver.phone;
-  if (driver.email !== undefined) api.email = driver.email;
-  if (driver.initials !== undefined) api.initials = driver.initials;
-  if (driver.color !== undefined) api.color = driver.color;
-  if (driver.location !== undefined) api.location = driver.location;
-  if (driver.isActive !== undefined) api.is_active = driver.isActive;
-  return api;
+export function createRequestToApi(
+  request: CreateDriverRequest
+): CreateDriverRequest {
+  return request;
+}
+
+/**
+ * Transform UpdateDriverRequest to API format
+ * This is a pass-through since UpdateDriverRequest already matches API format
+ */
+export function updateRequestToApi(
+  request: UpdateDriverRequest
+): UpdateDriverRequest {
+  return request;
 }
 
 /**

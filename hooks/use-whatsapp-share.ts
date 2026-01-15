@@ -11,10 +11,12 @@ import {
   shareToWhatsApp,
 } from "@/lib/utils/whatsapp-share";
 
+import type { Driver } from "@/lib/domains/drivers/drivers.types";
+
 interface UseWhatsAppShareProps {
   selectedDriverId: string | null;
   filteredOrders: Order[];
-  drivers?: Array<{ id: string; name: string; phone: string }>;
+  drivers?: Driver[];
 }
 
 export function useWhatsAppShare({
@@ -27,7 +29,14 @@ export function useWhatsAppShare({
   const handleShare = useCallback(async () => {
     if (!selectedDriverId || filteredOrders.length === 0) return;
 
-    const driver = drivers?.find((d) => d.id === selectedDriverId);
+    // Try to find driver in provided list first
+    let driver = drivers?.find((d) => d.id === selectedDriverId);
+    
+    // If not found, fetch from service
+    if (!driver) {
+      driver = await driversService.getDriverById(selectedDriverId);
+    }
+    
     if (!driver) return;
 
     try {
@@ -37,7 +46,7 @@ export function useWhatsAppShare({
       console.error("Failed to share:", error);
       // TODO: Show user-friendly error message
     }
-  }, [selectedDriverId, filteredOrders, drivers]);
+  }, [selectedDriverId, filteredOrders, drivers, driversService]);
 
   return { handleShare };
 }

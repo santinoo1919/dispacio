@@ -4,12 +4,12 @@
  */
 
 import { Card } from "@/components/ui/card";
-import { ApiDriver } from "@/lib/services/api";
+import { Driver } from "@/lib/domains/drivers/drivers.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 
 interface DriverCardProps {
-  driver: ApiDriver;
+  driver: Driver;
   index: number;
   onEdit?: () => void;
   onDelete?: () => void;
