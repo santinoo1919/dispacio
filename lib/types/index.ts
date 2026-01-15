@@ -9,17 +9,8 @@ export type { Order };
 // Re-export Driver from drivers domain for backward compatibility
 export type { Driver } from "@/lib/domains/drivers/drivers.types";
 
-export interface Zone {
-  id: string; // Display name (e.g., "Zone 1")
-  serverId?: string; // Backend UUID for API calls
-  center: {
-    lat: number;
-    lng: number;
-  };
-  orders: Order[];
-  orderCount: number;
-  assignedDriverId?: string; // Driver assigned to all orders in this zone
-}
+// Re-export Zone from zones domain for backward compatibility
+export type { Zone } from "@/lib/domains/zones/zones.types";
 
 export interface Dispatch {
   id: string;

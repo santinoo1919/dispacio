@@ -254,8 +254,15 @@ export async function healthCheck(): Promise<{
 
 /**
  * Zone-related API functions
+ * @deprecated Use domain types from @/lib/domains/zones/zones.types instead
+ * These types and functions are kept for backward compatibility but should not be used in new code.
+ * Components should only use domain types (Zone), not API types.
+ * Use ZonesService from @/lib/domains/zones/zones.service instead of these functions.
  */
 
+/**
+ * @deprecated Use Zone from @/lib/domains/zones/zones.types instead
+ */
 export interface Zone {
   id: string;
   name: string;
@@ -267,6 +274,9 @@ export interface Zone {
   updatedAt?: string;
 }
 
+/**
+ * @deprecated Use CreateZoneRequest from @/lib/domains/zones/zones.types instead
+ */
 export interface CreateZoneInput {
   name: string;
   center: { lat: number; lng: number };
@@ -276,6 +286,7 @@ export interface CreateZoneInput {
 
 /**
  * Get all zones with their orders
+ * @deprecated Use ZonesService.getZones() from @/lib/domains/zones/zones.service instead
  */
 export async function fetchZones(): Promise<{ zones: Zone[] }> {
   return apiRequest("/api/zones");
@@ -283,6 +294,7 @@ export async function fetchZones(): Promise<{ zones: Zone[] }> {
 
 /**
  * Create zones from clustering
+ * @deprecated Use ZonesService.createZones() from @/lib/domains/zones/zones.service instead
  * @param zones Array of zone data with order IDs
  */
 export async function createZones(zones: CreateZoneInput[]): Promise<{
@@ -298,6 +310,7 @@ export async function createZones(zones: CreateZoneInput[]): Promise<{
 
 /**
  * Assign driver to all orders in a zone
+ * @deprecated Use ZonesService.assignDriverToZone() from @/lib/domains/zones/zones.service instead
  * @param zoneId Zone UUID
  * @param driverId Backend driver UUID
  */

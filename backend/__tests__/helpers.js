@@ -49,7 +49,7 @@ export async function buildTestApp() {
  */
 export async function closeTestApp(app) {
   if (!app) return;
-  
+
   try {
     // Close PostgreSQL pool explicitly
     if (app.pg && app.pg.pool) {
