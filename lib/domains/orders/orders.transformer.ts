@@ -3,7 +3,6 @@
  * Converts between backend API format and domain format
  */
 
-import { getFrontendDriverId } from "@/lib/data/drivers";
 import type { ApiOrder, CreateOrderRequest, Order } from "./orders.types";
 
 /**
@@ -20,7 +19,7 @@ export function toDomain(apiOrder: ApiOrder): Order {
     items: apiOrder.items,
     priority: (apiOrder.priority as "low" | "normal" | "high") || "normal",
     rank: apiOrder.route_rank ?? undefined, // Preserve 0, convert null to undefined
-    driverId: getFrontendDriverId(apiOrder.driver_id) || undefined, // Convert backend UUID to frontend ID
+    driverId: apiOrder.driver_id || undefined, // Driver ID is now backend UUID directly
     latitude: apiOrder.latitude,
     longitude: apiOrder.longitude,
     packageLength: apiOrder.package_length,
@@ -36,11 +35,11 @@ export function toDomain(apiOrder: ApiOrder): Order {
 /**
  * Transform domain order format to API request format
  * @param order Domain order
- * @param getBackendDriverId Function to convert frontend driver ID to backend UUID
+ * @param getBackendDriverId Function to convert driver ID (now pass-through since IDs are backend UUIDs)
  */
 export function toApi(
   order: Order,
-  getBackendDriverId: (frontendId: string) => string | null
+  getBackendDriverId: (id: string) => string | null = (id) => id
 ): CreateOrderRequest {
   return {
     order_number: order.id,

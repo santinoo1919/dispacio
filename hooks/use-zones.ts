@@ -4,7 +4,6 @@
  */
 
 import { ZoneClusterer } from "@/lib/clustering/zone-clusterer";
-import { getBackendDriverId } from "@/lib/data/drivers";
 import {
   assignDriverToZone,
   createZones,
@@ -24,8 +23,10 @@ const zoneClusterer = new ZoneClusterer();
  * Auto-creates zones if orders exist but no zones are present
  */
 export function useZones() {
+  const { data: drivers } = useDrivers({ isActive: true });
+
   return useQuery({
-    queryKey: ["zones"],
+    queryKey: ["zones", drivers],
     queryFn: async () => {
       // Fetch zones from backend
       const zonesResponse = await fetchZones();
@@ -58,7 +59,16 @@ export function useZones() {
       }
 
       // Convert backend zones to frontend format
-      return zonesResponse.zones.map((z) => transformZone(z, orders, true));
+      // Pass drivers for auto-assignment if available
+      const driversForTransform = drivers
+        ? drivers.map((d) => ({
+            id: d.id,
+            location: d.location || undefined,
+          }))
+        : undefined;
+      return zonesResponse.zones.map((z) =>
+        transformZone(z, orders, true, driversForTransform)
+      );
     },
   });
 }
@@ -104,7 +114,7 @@ export function useAssignDriverToZone() {
       driverId,
     }: {
       zoneId: string; // Frontend zone ID (display name)
-      driverId: string; // Frontend driver ID
+      driverId: string; // Backend driver UUID
     }) => {
       // Get zone to find serverId
       const zones = queryClient.getQueryData<Zone[]>(["zones"]);
@@ -113,12 +123,8 @@ export function useAssignDriverToZone() {
         throw new Error(`Zone ${zoneId} not found or missing serverId`);
       }
 
-      const backendDriverId = getBackendDriverId(driverId);
-      if (!backendDriverId) {
-        throw new Error(`No backend driver ID found for ${driverId}`);
-      }
-
-      return assignDriverToZone(zone.serverId, backendDriverId);
+      // Driver ID is now backend UUID directly, no conversion needed
+      return assignDriverToZone(zone.serverId, driverId);
     },
     onMutate: async ({ zoneId, driverId }) => {
       // Cancel outgoing queries

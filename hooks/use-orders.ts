@@ -124,7 +124,7 @@ export function useBulkAssignDriver() {
       driverId,
     }: {
       orderIds: string[];
-      driverId: string; // Frontend driver ID
+      driverId: string; // Backend driver UUID
     }) => {
       return ordersService.assignDriverToOrders(orderIds, driverId);
     },

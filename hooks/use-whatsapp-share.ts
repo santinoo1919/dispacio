@@ -5,7 +5,7 @@
 
 import { useCallback } from "react";
 import { Order } from "@/lib/types";
-import { getDriverById } from "@/lib/data/drivers";
+import { getDriversService } from "@/lib/domains/drivers/drivers.service";
 import {
   generateWhatsAppMessage,
   shareToWhatsApp,
@@ -14,16 +14,20 @@ import {
 interface UseWhatsAppShareProps {
   selectedDriverId: string | null;
   filteredOrders: Order[];
+  drivers?: Array<{ id: string; name: string; phone: string }>;
 }
 
 export function useWhatsAppShare({
   selectedDriverId,
   filteredOrders,
+  drivers,
 }: UseWhatsAppShareProps) {
+  const driversService = getDriversService();
+
   const handleShare = useCallback(async () => {
     if (!selectedDriverId || filteredOrders.length === 0) return;
 
-    const driver = getDriverById(selectedDriverId);
+    const driver = drivers?.find((d) => d.id === selectedDriverId);
     if (!driver) return;
 
     try {
@@ -33,7 +37,7 @@ export function useWhatsAppShare({
       console.error("Failed to share:", error);
       // TODO: Show user-friendly error message
     }
-  }, [selectedDriverId, filteredOrders]);
+  }, [selectedDriverId, filteredOrders, drivers]);
 
   return { handleShare };
 }

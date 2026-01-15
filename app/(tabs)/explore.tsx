@@ -10,7 +10,8 @@
 import { FallbackMap } from "@/components/maps/fallback-map";
 import { ScreenHeader } from "@/components/ui/screen-header";
 import { useZones } from "@/hooks/use-zones";
-import { DRIVERS, getDriverColor } from "@/lib/data/drivers";
+import { useDrivers } from "@/hooks/use-drivers";
+import { getDriversService } from "@/lib/domains/drivers/drivers.service";
 import { Order } from "@/lib/types";
 import { Coordinates, getOrderCoordinates } from "@/lib/utils/geocoding";
 import { isNativeMapAvailable } from "@/lib/utils/map-availability";
@@ -39,6 +40,8 @@ const UNASSIGNED_COLOR = "#71717A"; // zinc-500
 
 export default function MapScreen() {
   const { data: zones } = useZones();
+  const { data: drivers } = useDrivers({ isActive: true });
+  const driversService = getDriversService();
 
   // Derive orders from zones (memoized to avoid dependency warnings)
   const orders = useMemo(() => {
@@ -56,7 +59,7 @@ export default function MapScreen() {
     }[] = [];
 
     // Process assigned orders by driver
-    DRIVERS.forEach((driver, index) => {
+    (drivers || []).forEach((driver) => {
       const driverOrders = orders
         .filter((order) => order.driverId === driver.id)
         .sort((a, b) => {
@@ -76,7 +79,7 @@ export default function MapScreen() {
         series.push({
           driverId: driver.id,
           driverName: driver.name,
-          color: getDriverColor(driver.id), // Use shared color function
+          color: driversService.getDriverColor(driver.id, drivers),
           orders: driverOrders,
         });
       }
@@ -165,7 +168,7 @@ export default function MapScreen() {
   const googleMarkers = useMemo(() => {
     return dispatchSeries.flatMap((series) => {
       const driver = series.driverId
-        ? DRIVERS.find((d) => d.id === series.driverId)
+        ? drivers?.find((d) => d.id === series.driverId)
         : null;
       const driverInitials = driver?.initials || "—";
 
@@ -177,7 +180,7 @@ export default function MapScreen() {
         pinColor: series.color,
       }));
     });
-  }, [dispatchSeries]);
+  }, [dispatchSeries, drivers]);
 
   if (orders.length === 0) {
     return (

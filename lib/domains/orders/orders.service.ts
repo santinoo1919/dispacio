@@ -3,30 +3,27 @@
  * Business logic layer for orders domain
  */
 
-import { getBackendDriverId } from "@/lib/data/drivers";
 import type { Order } from "./orders.types";
 import { OrdersRepository } from "./orders.repository";
 import { toDomain, toDomainMany, toApi } from "./orders.transformer";
+import type { DriversService } from "@/lib/domains/drivers/drivers.service";
 
 /**
  * Orders Service - handles all business logic
  */
 export class OrdersService {
-  constructor(private repository: OrdersRepository) {}
+  constructor(
+    private repository: OrdersRepository,
+    private driversService?: DriversService
+  ) {}
 
   /**
-   * Get all orders, optionally filtered by driver (frontend ID)
-   * Handles driver ID conversion (frontend ID → backend UUID)
+   * Get all orders, optionally filtered by driver ID (backend UUID)
+   * Note: Driver IDs are now backend UUIDs directly (no conversion needed)
    */
-  async getOrders(frontendDriverId?: string): Promise<Order[]> {
-    // Convert frontend driver ID to backend UUID if filtering
-    let backendDriverId: string | undefined;
-    if (frontendDriverId) {
-      backendDriverId = getBackendDriverId(frontendDriverId) || undefined;
-    }
-
-    // Fetch from repository
-    const apiOrders = await this.repository.findAll(backendDriverId);
+  async getOrders(driverId?: string): Promise<Order[]> {
+    // Fetch from repository (driverId is already backend UUID)
+    const apiOrders = await this.repository.findAll(driverId);
 
     // Transform to domain model
     return toDomainMany(apiOrders);
@@ -52,8 +49,9 @@ export class OrdersService {
     errors?: { order: string; error: string }[];
   }> {
     // Convert domain orders to API format
+    // Driver IDs are now backend UUIDs directly, no conversion needed
     const apiOrders = orders.map((order) =>
-      toApi(order, getBackendDriverId)
+      toApi(order, (id) => id) // Pass-through function since IDs are already backend UUIDs
     );
 
     // Create via repository
@@ -119,7 +117,8 @@ export class OrdersService {
     if (updates.longitude !== undefined)
       apiUpdates.longitude = updates.longitude;
     if (updates.driverId !== undefined) {
-      apiUpdates.driver_id = getBackendDriverId(updates.driverId) || undefined;
+      // Driver ID is already backend UUID, no conversion needed
+      apiUpdates.driver_id = updates.driverId;
     }
     if (updates.rank !== undefined) apiUpdates.route_rank = updates.rank;
     if (updates.rawData !== undefined) apiUpdates.rawData = updates.rawData;
@@ -133,20 +132,13 @@ export class OrdersService {
 
   /**
    * Assign driver to multiple orders
-   * Handles driver ID conversion (frontend ID → backend UUID)
+   * Driver ID is already backend UUID (no conversion needed)
    */
   async assignDriverToOrders(
     orderIds: string[],
-    frontendDriverId: string
+    driverId: string // Backend UUID
   ): Promise<void> {
-    const backendDriverId = getBackendDriverId(frontendDriverId);
-    if (!backendDriverId) {
-      throw new Error(
-        `No backend driver ID found for ${frontendDriverId}`
-      );
-    }
-
-    await this.repository.bulkAssignDriver(orderIds, backendDriverId);
+    await this.repository.bulkAssignDriver(orderIds, driverId);
   }
 
   /**
@@ -163,9 +155,12 @@ export class OrdersService {
  */
 let ordersServiceInstance: OrdersService | null = null;
 
-export function getOrdersService(): OrdersService {
+export function getOrdersService(driversService?: DriversService): OrdersService {
   if (!ordersServiceInstance) {
-    ordersServiceInstance = new OrdersService(new OrdersRepository());
+    ordersServiceInstance = new OrdersService(
+      new OrdersRepository(),
+      driversService
+    );
   }
   return ordersServiceInstance;
 }

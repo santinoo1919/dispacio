@@ -1,6 +1,5 @@
 import type { ApiOrder } from "@/lib/domains/orders/orders.types";
 import { toDomain, toApi } from "@/lib/domains/orders/orders.transformer";
-import { getBackendDriverId } from "@/lib/data/drivers";
 
 describe("toDomain", () => {
   it("maps API fields to frontend Order correctly", () => {
@@ -83,7 +82,8 @@ describe("toApi", () => {
       rank: 5,
       rawData: { ok: true },
     };
-    const api = toApi(order as any, getBackendDriverId);
+    // Driver IDs are now backend UUIDs directly, pass-through function
+    const api = toApi(order as any, (id) => id);
     expect(api.order_number).toBe("ORD-123");
     expect(api.customer_name).toBe("Sam");
     expect(api.address).toBe("789 Pine");

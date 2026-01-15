@@ -6,16 +6,8 @@
 import type { Order } from "@/lib/domains/orders/orders.types";
 export type { Order };
 
-export interface Driver {
-  id: string;
-  name: string;
-  phone: string;
-  initials: string;
-  location?: {
-    lat: number;
-    lng: number;
-  };
-}
+// Re-export Driver from drivers domain for backward compatibility
+export type { Driver } from "@/lib/domains/drivers/drivers.types";
 
 export interface Zone {
   id: string; // Display name (e.g., "Zone 1")

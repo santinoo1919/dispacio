@@ -1,39 +1,35 @@
 /**
  * React Query hooks for drivers
- * Handles fetching, creating, updating, and deleting drivers
+ * Thin layer that wraps DriversService with React Query
  */
 
-import {
-  createDriver,
-  deleteDriver,
-  fetchDriver,
-  fetchDrivers,
-  updateDriver,
-  type CreateDriverRequest,
-  type UpdateDriverRequest,
-} from "@/lib/services/api";
+import { getDriversService } from "@/lib/domains/drivers/drivers.service";
+import type { Driver } from "@/lib/domains/drivers/drivers.types";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 /**
  * Fetch all drivers (optionally filtered by active status)
  */
-export function useDrivers(options?: { is_active?: boolean }) {
+export function useDrivers(options?: { isActive?: boolean }) {
+  const driversService = getDriversService();
+
   return useQuery({
     queryKey: ["drivers", options],
-    queryFn: () => fetchDrivers(options),
-    select: (data) => data.drivers, // Return just the drivers array
+    queryFn: () => driversService.getDrivers(options),
   });
 }
 
 /**
- * Fetch a single driver by ID
+ * Fetch a single driver by ID (backend UUID)
  */
 export function useDriver(driverId: string | null | undefined) {
+  const driversService = getDriversService();
+
   return useQuery({
     queryKey: ["drivers", driverId],
-    queryFn: () => fetchDriver(driverId!),
-    enabled: !!driverId, // Only fetch if driverId is provided
+    queryFn: () => driversService.getDriver(driverId!),
+    enabled: !!driverId,
   });
 }
 
@@ -42,9 +38,10 @@ export function useDriver(driverId: string | null | undefined) {
  */
 export function useCreateDriver() {
   const queryClient = useQueryClient();
+  const driversService = getDriversService();
 
   return useMutation({
-    mutationFn: (driver: CreateDriverRequest) => createDriver(driver),
+    mutationFn: (driver: Partial<Driver>) => driversService.createDriver(driver),
     onSuccess: () => {
       // Invalidate drivers list to refetch
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
@@ -64,6 +61,7 @@ export function useCreateDriver() {
  */
 export function useUpdateDriver() {
   const queryClient = useQueryClient();
+  const driversService = getDriversService();
 
   return useMutation({
     mutationFn: ({
@@ -71,8 +69,8 @@ export function useUpdateDriver() {
       updates,
     }: {
       driverId: string;
-      updates: UpdateDriverRequest;
-    }) => updateDriver(driverId, updates),
+      updates: Partial<Driver>;
+    }) => driversService.updateDriver(driverId, updates),
     onSuccess: (data, variables) => {
       // Update cache optimistically
       queryClient.setQueryData(["drivers", variables.driverId], data);
@@ -94,9 +92,10 @@ export function useUpdateDriver() {
  */
 export function useDeleteDriver() {
   const queryClient = useQueryClient();
+  const driversService = getDriversService();
 
   return useMutation({
-    mutationFn: (driverId: string) => deleteDriver(driverId),
+    mutationFn: (driverId: string) => driversService.deleteDriver(driverId),
     onSuccess: (data, driverId) => {
       // Remove from cache
       queryClient.removeQueries({ queryKey: ["drivers", driverId] });
@@ -112,4 +111,3 @@ export function useDeleteDriver() {
     },
   });
 }
-

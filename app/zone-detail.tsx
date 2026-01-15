@@ -5,7 +5,7 @@
 
 import { OrderCard } from "@/components/dispatch/order-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { DRIVERS, getDriverById, getDriverColor } from "@/lib/data/drivers";
+import { getDriversService } from "@/lib/domains/drivers/drivers.service";
 import { calculateOrderDistance } from "@/lib/utils/distance";
 import { showToast } from "@/lib/utils/toast";
 import {
@@ -15,6 +15,7 @@ import {
 import { useAssignDriverToZone } from "@/hooks/use-zones";
 import { useOptimizeRoute } from "@/hooks/use-routes";
 import { useZones } from "@/hooks/use-zones";
+import { useDrivers } from "@/hooks/use-drivers";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -30,6 +31,8 @@ export default function ZoneDetailScreen() {
   const router = useRouter();
   const { zoneId } = useLocalSearchParams<{ zoneId: string }>();
   const { data: zones } = useZones();
+  const { data: drivers } = useDrivers({ isActive: true });
+  const driversService = getDriversService();
   const assignDriverMutation = useAssignDriverToZone();
   const optimizeRouteMutation = useOptimizeRoute();
   const [optimizedResult, setOptimizedResult] = useState<{
@@ -113,7 +116,7 @@ export default function ZoneDetailScreen() {
       return;
     }
 
-    const driver = getDriverById(driverId);
+    const driver = drivers?.find((d) => d.id === driverId);
     if (!driver) {
       showToast.error("Error", "Driver not found");
       return;
@@ -176,9 +179,9 @@ export default function ZoneDetailScreen() {
             Select Driver
           </Text>
           <View className="flex-row flex-wrap gap-2">
-            {DRIVERS.map((driver) => {
+            {(drivers || []).map((driver) => {
               const isSelected = assignedDriverId === driver.id;
-              const driverColor = getDriverColor(driver.id);
+              const driverColor = driversService.getDriverColor(driver.id, drivers);
               return (
                 <Pressable
                   key={driver.id}
@@ -199,7 +202,7 @@ export default function ZoneDetailScreen() {
                         isSelected ? "text-text" : "text-text-secondary"
                       }`}
                     >
-                      {driver.initials}
+                      {driver.initials || "—"}
                     </Text>
                   </View>
                   <Text
@@ -275,7 +278,7 @@ export default function ZoneDetailScreen() {
           </Text>
           {sortedOrders.map((order, index) => {
             const driver = order.driverId
-              ? getDriverById(order.driverId)
+              ? drivers?.find((d) => d.id === order.driverId)
               : undefined;
             // Use rank as stop number if available, otherwise use index + 1
             const stopNumber = order.rank || index + 1;
@@ -284,8 +287,8 @@ export default function ZoneDetailScreen() {
                 <OrderCard
                   order={order}
                   index={index}
-                  driverInitials={driver?.initials}
-                  driverColor={getDriverColor(order.driverId)}
+                  driverInitials={driver?.initials || undefined}
+                  driverColor={driversService.getDriverColor(order.driverId, drivers)}
                   distanceToNext={orderDistances[index]}
                   stopNumber={stopNumber}
                   totalStops={sortedOrders.length}
