@@ -30,7 +30,7 @@ export function useWhatsAppShare({
     if (!selectedDriverId || filteredOrders.length === 0) return;
 
     // Try to find driver in provided list first
-    let driver = drivers?.find((d) => d.id === selectedDriverId);
+    let driver: Driver | null | undefined = drivers?.find((d) => d.id === selectedDriverId);
     
     // If not found, fetch from service
     if (!driver) {
