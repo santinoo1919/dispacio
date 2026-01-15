@@ -20,7 +20,8 @@ describe("Route Optimization API", () => {
 
   afterAll(async () => {
     if (app) {
-      await app.close();
+      const { closeTestApp } = await import("../../__tests__/helpers.js");
+      await closeTestApp(app);
     }
   });
 

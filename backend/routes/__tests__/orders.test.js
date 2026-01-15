@@ -21,7 +21,8 @@ describe("Orders API", () => {
 
   // Close app after all tests
   afterAll(async () => {
-    await app.close();
+    const { closeTestApp } = await import("../../__tests__/helpers.js");
+    await closeTestApp(app);
   });
 
   describe("POST /api/orders", () => {

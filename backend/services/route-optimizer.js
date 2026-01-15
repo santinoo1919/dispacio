@@ -203,27 +203,38 @@ export async function solveVRPWithORTools(orders, vehicle, depotLocation) {
       deliveries: [], // No pickup-delivery pairs
     };
 
-    return new Promise((resolve, reject) => {
-      VRP.Solve(searchOptions, (err, solution) => {
-        if (err) {
-          reject(new Error(`OR-Tools solver error: ${err.message}`));
-          return;
-        }
+    // Wrap in timeout to prevent hanging (especially in tests)
+    const timeout = process.env.NODE_ENV === 'test' ? 5000 : 30000;
+    
+    return Promise.race([
+      new Promise((resolve, reject) => {
+        VRP.Solve(searchOptions, (err, solution) => {
+          if (err) {
+            reject(new Error(`OR-Tools solver error: ${err.message}`));
+            return;
+          }
 
-        if (!solution) {
-          reject(new Error("OR-Tools returned no solution"));
-          return;
-        }
+          if (!solution) {
+            reject(new Error("OR-Tools returned no solution"));
+            return;
+          }
 
-        // Return solution with order mapping for later parsing
-        resolve({
-          solution,
-          orderIndexMap, // Map: original order index -> OR-Tools location index
-          distanceMatrix, // Keep for distance calculations
-          locations, // Keep for distance calculations
+          // Return solution with order mapping for later parsing
+          resolve({
+            solution,
+            orderIndexMap, // Map: original order index -> OR-Tools location index
+            distanceMatrix, // Keep for distance calculations
+            locations, // Keep for distance calculations
+          });
         });
-      });
-    });
+      }),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`OR-Tools solver timeout after ${timeout}ms`)),
+          timeout
+        )
+      ),
+    ]);
   } catch (error) {
     if (error.message.includes("Cannot find module")) {
       throw new Error(
