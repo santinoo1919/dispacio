@@ -36,7 +36,7 @@ export function AssignmentButtons({
             className="flex-1 bg-accent-600 px-3 py-2 rounded-lg active:bg-accent-700"
           >
             <Text className="text-white text-center font-semibold text-sm">
-              → {driver.initials}
+              → {driver.initials || "—"}
             </Text>
           </Pressable>
         ))}

@@ -6,6 +6,20 @@
 import type { ApiDriver, Driver } from "./drivers.types";
 
 /**
+ * Generate initials from a name
+ * Takes first letter of each word, up to 2 characters
+ */
+function generateInitials(name: string): string {
+  if (!name) return "—";
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/**
  * Transform backend API driver format to domain format
  */
 export function toDomain(apiDriver: ApiDriver): Driver {
@@ -14,7 +28,8 @@ export function toDomain(apiDriver: ApiDriver): Driver {
     name: apiDriver.name,
     phone: apiDriver.phone,
     email: apiDriver.email,
-    initials: apiDriver.initials,
+    // Generate initials if not provided
+    initials: apiDriver.initials || generateInitials(apiDriver.name),
     color: apiDriver.color,
     location: apiDriver.location,
     isActive: apiDriver.is_active,

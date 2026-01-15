@@ -59,7 +59,7 @@ export function DriverTabs({
                   : "text-text-secondary"
               }`}
             >
-              {driver.initials} ({orderCounts[driver.id] || 0})
+              {driver.initials || "—"} ({orderCounts[driver.id] || 0})
             </Text>
           </Pressable>
         ))}

@@ -107,7 +107,7 @@ export function ZoneCard({ zone, index, onPress }: ZoneCardProps) {
               style={{ backgroundColor: driverColor || "#71717A" }}
             >
               <Text className="text-white font-semibold text-sm">
-                {driver.initials}
+                {driver.initials || "—"}
               </Text>
             </View>
           )}
