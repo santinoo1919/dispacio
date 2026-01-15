@@ -21,13 +21,16 @@ export class ZonesService {
 
   /**
    * Get all zones with their orders
+   * Filters out empty zones (zones with no orders)
    */
   async getZones(
     orders: Order[] = [],
     drivers: Driver[] = []
   ): Promise<Zone[]> {
     const response = await this.repository.findAll();
-    return toDomainMany(response.zones, orders, drivers);
+    const allZones = toDomainMany(response.zones, orders, drivers);
+    // Filter out empty zones (zones with no orders)
+    return allZones.filter((zone) => zone.orders.length > 0);
   }
 
   /**

@@ -184,21 +184,16 @@ export class CSVParser {
             packageWeight: weight,
             packageVolume: packageVolume,
             priority: "normal" as const,
-            rank: 0, // Will be updated after filtering
+            // Don't set rank for new CSV orders - rank is only set after route optimization
             rawData: row, // Store all original data
           };
         })
         .filter((order) => order !== null) as Order[];
 
-      // Set ranks after filtering out invalid orders
-      const rankedOrders = orders.map((order, index) => ({
-        ...order,
-        rank: index + 1,
-      }));
-
+      // Don't set ranks for new CSV orders - rank is only set after route optimization
       return {
         success: true,
-        orders: rankedOrders,
+        orders: orders,
         headers,
       };
     } catch (error) {

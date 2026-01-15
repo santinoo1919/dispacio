@@ -51,10 +51,21 @@ export function useCreateOrders() {
       // Invalidate orders and zones to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["zones"] });
-      showToast.success(
-        "Success!",
-        `Uploaded ${data.created} orders. Found ${data.orders.length} total orders.`
-      );
+
+      // Build informative message
+      const parts: string[] = [];
+      if (data.created > 0) {
+        parts.push(`Created ${data.created} order${data.created !== 1 ? "s" : ""}`);
+      }
+      if (data.skipped > 0) {
+        parts.push(`Skipped ${data.skipped} duplicate${data.skipped !== 1 ? "s" : ""}`);
+      }
+      if (data.failed > 0) {
+        parts.push(`Failed ${data.failed}`);
+      }
+
+      const message = parts.length > 0 ? parts.join(", ") : "No orders processed";
+      showToast.success("CSV Upload", message);
     },
     onError: (error) => {
       showToast.error(

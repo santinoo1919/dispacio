@@ -60,11 +60,14 @@ export function toApi(
     driver_id: order.driverId
       ? getBackendDriverId(order.driverId) || undefined
       : undefined,
-    route_rank: order.rank,
+    // Only include route_rank if explicitly set and > 0 (not for new CSV orders)
+    ...(order.rank !== undefined && order.rank !== null && order.rank > 0
+      ? { route_rank: order.rank }
+      : {}),
     // Only include rawData if it exists and has content
-    rawData: order.rawData && Object.keys(order.rawData).length > 0 
-      ? order.rawData 
-      : undefined,
+    ...(order.rawData && Object.keys(order.rawData).length > 0
+      ? { rawData: order.rawData }
+      : {}),
   };
 }
 
@@ -74,4 +77,3 @@ export function toApi(
 export function toDomainMany(apiOrders: ApiOrder[]): Order[] {
   return apiOrders.map(toDomain);
 }
-

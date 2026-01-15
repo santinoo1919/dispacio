@@ -148,6 +148,7 @@ export default async function ordersRoutes(fastify, options) {
         await client.query("BEGIN");
 
         const insertedOrders = [];
+        const skippedOrders = []; // Track skipped duplicates
         const errors = [];
 
         for (const order of orders) {
@@ -176,12 +177,15 @@ export default async function ordersRoutes(fastify, options) {
                 parseFloat(order.package_height);
             }
 
+            // Use ON CONFLICT DO NOTHING to gracefully skip duplicates
+            // This prevents transaction abort on duplicate order_number
             const result = await client.query(
               `INSERT INTO orders (
               order_number, customer_name, address, phone, notes, amount, items,
               priority, package_length, package_width, package_height, package_weight, package_volume,
               latitude, longitude, driver_id, route_rank, raw_data
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+            ON CONFLICT (order_number) DO NOTHING
             RETURNING *`,
               [
                 order.order_number,
@@ -205,20 +209,21 @@ export default async function ordersRoutes(fastify, options) {
               ]
             );
 
-            insertedOrders.push(result.rows[0]);
-          } catch (error) {
-            // Handle unique constraint violations (duplicate order_number)
-            if (error.code === "23505") {
-              errors.push({
-                order: order.order_number,
-                error: "Order number already exists",
-              });
+            // If result.rows is empty, the order was skipped (duplicate)
+            if (result.rows.length > 0) {
+              insertedOrders.push(result.rows[0]);
             } else {
-              errors.push({
-                order: order.order_number || "unknown",
-                error: error.message,
+              skippedOrders.push({
+                order: order.order_number,
+                reason: "Order number already exists",
               });
             }
+          } catch (error) {
+            // Only non-duplicate errors reach here (validation, constraint violations, etc.)
+            errors.push({
+              order: order.order_number || "unknown",
+              error: error.message,
+            });
           }
         }
 
@@ -227,8 +232,10 @@ export default async function ordersRoutes(fastify, options) {
         return {
           success: true,
           created: insertedOrders.length,
+          skipped: skippedOrders.length,
           failed: errors.length,
           orders: insertedOrders,
+          skippedOrders: skippedOrders.length > 0 ? skippedOrders : undefined,
           errors: errors.length > 0 ? errors : undefined,
         };
       } catch (error) {

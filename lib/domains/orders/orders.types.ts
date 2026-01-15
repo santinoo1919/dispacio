@@ -86,7 +86,9 @@ export interface CreateOrderRequest {
 export interface CreateOrdersResponse {
   success: boolean;
   created: number;
+  skipped: number;
   failed: number;
   orders: ApiOrder[];
+  skippedOrders?: { order: string; reason: string }[];
   errors?: { order: string; error: string }[];
 }

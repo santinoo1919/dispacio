@@ -16,7 +16,7 @@ jobs:
     name: Frontend Tests
     runs-on: ubuntu-latest
     concurrency:
-      group: pr-tests-${{ github.ref }}
+      group: frontend-tests-${{ github.ref }}
       cancel-in-progress: true
 
     steps:
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
-      group: pr-tests-${{ github.ref }}
+      group: backend-tests-${{ github.ref }}
       cancel-in-progress: true
 
     # PostgreSQL service for tests

@@ -44,8 +44,10 @@ export class OrdersService {
   async createOrders(orders: Order[]): Promise<{
     success: boolean;
     created: number;
+    skipped: number;
     failed: number;
     orders: Order[];
+    skippedOrders?: { order: string; reason: string }[];
     errors?: { order: string; error: string }[];
   }> {
     // Convert domain orders to API format

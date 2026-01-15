@@ -5,11 +5,12 @@
 
 import type { ApiZone, Zone, CreateZoneRequest } from "./zones.types";
 import type { Order } from "../orders/orders.types";
+import { toDomain as orderToDomain } from "../orders/orders.transformer";
 
 /**
  * Transform backend API zone format to domain format
- * @param apiZone Backend zone data
- * @param orders Orders to include in the zone
+ * @param apiZone Backend zone data with orders already included
+ * @param orders Optional separate orders array (for backwards compatibility)
  * @param drivers Optional drivers array for driver lookup
  */
 export function toDomain(
@@ -17,11 +18,20 @@ export function toDomain(
   orders: Order[] = [],
   drivers?: Array<{ id: string; color?: string | null }>
 ): Zone {
-  // Filter orders that belong to this zone
-  // Backend returns orders in the zone response, but we need to match by zone_id
-  const zoneOrders = orders.filter(
-    (order) => (order as any).zoneId === apiZone.id
-  );
+  // Backend returns orders already grouped with the zone in the response
+  // Use orders from apiZone.orders if available, otherwise fall back to filtering
+  let zoneOrders: Order[] = [];
+  
+  if (apiZone.orders && Array.isArray(apiZone.orders) && apiZone.orders.length > 0) {
+    // Transform API orders to domain orders
+    zoneOrders = apiZone.orders.map((apiOrder: any) => orderToDomain(apiOrder));
+  } else if (orders.length > 0) {
+    // Fallback: Filter orders by zone_id if provided separately
+    // This shouldn't happen in normal flow since backend includes orders
+    zoneOrders = orders.filter(
+      (order) => (order as any).zoneId === apiZone.id || (order as any).zone_id === apiZone.id
+    );
+  }
 
   return {
     id: apiZone.name, // Use name as display ID

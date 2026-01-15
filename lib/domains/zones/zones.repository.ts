@@ -80,18 +80,11 @@ export class ZonesRepository {
    * Create zones
    */
   async create(zones: CreateZoneRequest[]): Promise<CreateZonesResponse> {
-    // Transform to API format
-    const apiZones = zones.map((zone) => ({
-      name: zone.name,
-      center_lat: zone.center.lat,
-      center_lng: zone.center.lng,
-      radius: zone.radius,
-      order_ids: zone.orderIds,
-    }));
-
+    // Backend schema expects: { name, center: { lat, lng }, radius?, orderIds }
+    // CreateZoneRequest already matches this format, no transformation needed
     return apiRequest<CreateZonesResponse>("/api/zones", {
       method: "POST",
-      body: JSON.stringify({ zones: apiZones }),
+      body: JSON.stringify({ zones }),
     });
   }
 

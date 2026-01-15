@@ -155,9 +155,24 @@ export default async function zonesRoutes(fastify, options) {
       try {
         await client.query("BEGIN");
 
+        // Delete existing empty zones first (cleanup stale zones)
+        await client.query(
+          `DELETE FROM zones WHERE id NOT IN (
+            SELECT DISTINCT zone_id FROM orders WHERE zone_id IS NOT NULL
+          )`
+        );
+
         const createdZones = [];
 
         for (const zoneData of zonesData) {
+          // Skip zones with no orders - only create zones that have orders
+          if (!zoneData.orderIds || zoneData.orderIds.length === 0) {
+            fastify.log.warn(
+              `Skipping zone creation for ${zoneData.name}: no orders assigned`
+            );
+            continue;
+          }
+
           // Create zone
           const zoneResult = await client.query(
             `INSERT INTO zones (name, center_lat, center_lng, radius)
@@ -173,15 +188,13 @@ export default async function zonesRoutes(fastify, options) {
 
           const zone = zoneResult.rows[0];
 
-          // Assign orders to zone
-          if (zoneData.orderIds && zoneData.orderIds.length > 0) {
-            await client.query(
-              `UPDATE orders 
-               SET zone_id = $1, updated_at = NOW()
-               WHERE id = ANY($2::uuid[])`,
-              [zone.id, zoneData.orderIds]
-            );
-          }
+          // Assign orders to zone (we know orderIds is not empty from check above)
+          await client.query(
+            `UPDATE orders 
+             SET zone_id = $1, updated_at = NOW()
+             WHERE id = ANY($2::uuid[])`,
+            [zone.id, zoneData.orderIds]
+          );
 
           // Get orders for response
           const ordersResult = await client.query(

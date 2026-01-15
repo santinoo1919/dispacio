@@ -3,9 +3,9 @@
  * Native iOS modal for CSV input
  */
 
-import { CSVParser } from "@/lib/csv/parser";
 import { useCreateOrders } from "@/hooks/use-orders";
 import { useCreateZones } from "@/hooks/use-zones";
+import { CSVParser } from "@/lib/csv/parser";
 import { useDispatchStore } from "@/store/dispatch-store";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
@@ -32,25 +32,53 @@ export default function PasteCSVScreen() {
     const uploadResult = await createOrdersMutation.mutateAsync(result.orders);
 
     if (uploadResult.success) {
-      // Cluster orders and create zones in backend
-      const { ZoneClusterer } = await import("@/lib/clustering/zone-clusterer");
-      const zoneClusterer = new ZoneClusterer();
+      // Fetch all orders from backend (including newly created and existing ones)
+      // This ensures zones include all orders, not just newly created ones
+      const ordersService = (
+        await import("@/lib/domains/orders/orders.service")
+      ).getOrdersService();
+      const allOrders = await ordersService.getOrders();
 
-      // Upload result already contains domain Order[] format
-      // Cluster orders locally
-      const clusteredZones = zoneClusterer.clusterOrders(uploadResult.orders);
+      // Only create zones if we have orders to cluster
+      if (allOrders.length > 0) {
+        // Cluster orders locally
+        const { ZoneClusterer } = await import(
+          "@/lib/clustering/zone-clusterer"
+        );
+        const zoneClusterer = new ZoneClusterer();
+        const clusteredZones = zoneClusterer.clusterOrders(allOrders);
 
-      // Create zones in backend with order assignments
-      const zonesToCreate = clusteredZones.map((zone) => ({
-        name: zone.id,
-        center: zone.center,
-        orderIds: zone.orders
-          .map((o) => o.serverId)
-          .filter(Boolean) as string[],
-      }));
+        // Create zones in backend with order assignments
+        // Filter out zones with no orders and ensure serverId exists
+        const zonesToCreate = clusteredZones
+          .filter((zone) => zone.orders.length > 0)
+          .map((zone) => {
+            const orderIds = zone.orders
+              .map((o) => o.serverId)
+              .filter(Boolean) as string[];
 
-      if (zonesToCreate.length > 0) {
-        await createZonesMutation.mutateAsync(zonesToCreate);
+            // Log warning if orders are missing serverId
+            if (orderIds.length < zone.orders.length) {
+              console.warn(
+                `Zone ${zone.id}: ${
+                  zone.orders.length - orderIds.length
+                } orders missing serverId`
+              );
+            }
+
+            return {
+              name: zone.id,
+              center: zone.center,
+              orderIds,
+            };
+          })
+          .filter((zone) => zone.orderIds.length > 0); // Only create zones with valid orderIds
+
+        if (zonesToCreate.length > 0) {
+          await createZonesMutation.mutateAsync(zonesToCreate);
+        } else {
+          console.warn("No zones to create - all zones have empty orderIds");
+        }
       }
 
       // Success - navigate back
