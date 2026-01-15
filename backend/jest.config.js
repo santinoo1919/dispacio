@@ -35,6 +35,13 @@ export default {
   // Verbose output
   verbose: true,
   
+  // Run tests sequentially for database tests (more reliable, avoids connection pool issues)
+  // Database integration tests benefit from sequential execution to prevent:
+  // - Connection pool exhaustion
+  // - Hanging tests due to unclosed connections
+  // - Race conditions in database cleanup
+  maxWorkers: 1,
+  
   // Test timeout (some tests may need more time for DB operations)
   testTimeout: 10000
 };
