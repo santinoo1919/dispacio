@@ -40,8 +40,12 @@ export default function ZoneDetailScreen() {
   } | null>(null);
 
   const zone = zones?.find((z) => z.id === zoneId);
-  const zoneOrders = zone?.orders ?? [];
   const assignedDriverId = zone?.assignedDriverId;
+
+  // Wrap zoneOrders in useMemo to prevent dependency warnings
+  const zoneOrders = useMemo(() => {
+    return zone?.orders ?? [];
+  }, [zone?.orders]);
 
   // Sort orders by rank (optimized sequence) - orders with rank come first, then by rank value
   const sortedOrders = useMemo(() => {
@@ -103,7 +107,7 @@ export default function ZoneDetailScreen() {
           totalDuration: result.totalDuration,
         });
       }
-    } catch (error) {
+    } catch {
       // Error handling is done in the mutation hook
     }
   };
@@ -129,7 +133,7 @@ export default function ZoneDetailScreen() {
       setTimeout(() => {
         router.back();
       }, 500);
-    } catch (error) {
+    } catch {
       showToast.error("Error", "Failed to open WhatsApp");
     }
   };

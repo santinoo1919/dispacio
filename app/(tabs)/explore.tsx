@@ -104,7 +104,7 @@ export default function MapScreen() {
     }
 
     return series;
-  }, [orders]);
+  }, [orders, drivers, driversService]);
 
   // Calculate map region to fit all markers
   const mapRegion = useMemo(() => {
