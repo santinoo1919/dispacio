@@ -37,15 +37,15 @@ export function toDomain(
     id: apiZone.name, // Use name as display ID
     serverId: apiZone.id, // Backend UUID
     center: {
-      lat: apiZone.center_lat,
-      lng: apiZone.center_lng,
+      lat: apiZone.center.lat,
+      lng: apiZone.center.lng,
     },
     radius: apiZone.radius,
     orders: zoneOrders,
-    orderCount: zoneOrders.length,
-    assignedDriverId: apiZone.driver_id || undefined,
-    createdAt: apiZone.created_at,
-    updatedAt: apiZone.updated_at,
+    orderCount: apiZone.orderCount ?? zoneOrders.length,
+    assignedDriverId: undefined, // Not in API response, will be set from orders
+    createdAt: apiZone.createdAt,
+    updatedAt: apiZone.updatedAt,
   };
 }
 
