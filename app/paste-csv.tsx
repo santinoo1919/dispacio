@@ -3,9 +3,9 @@
  * Native iOS modal for CSV input
  */
 
-import { useCreateOrders } from "@/hooks/use-orders";
-import { useCreateZones } from "@/hooks/use-zones";
 import { CSVParser } from "@/lib/csv/parser";
+import { useCreateOrders } from "@/lib/domains/orders/orders.queries";
+import { useCreateZones } from "@/lib/domains/zones/zones.queries";
 import { useDispatchStore } from "@/store/dispatch-store";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";

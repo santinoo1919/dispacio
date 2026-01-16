@@ -9,8 +9,8 @@
 
 import { FallbackMap } from "@/components/maps/fallback-map";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { useZones } from "@/hooks/use-zones";
-import { useDrivers } from "@/hooks/use-drivers";
+import { useZones } from "@/lib/domains/zones/zones.queries";
+import { useDrivers } from "@/lib/domains/drivers/drivers.queries";
 import { getDriversService } from "@/lib/domains/drivers/drivers.service";
 import { Order } from "@/lib/types";
 import { Coordinates, getOrderCoordinates } from "@/lib/utils/geocoding";

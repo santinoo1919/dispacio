@@ -10,7 +10,7 @@ import {
   useDeleteDriver,
   useDrivers,
   useUpdateDriver,
-} from "@/hooks/use-drivers";
+} from "@/lib/domains/drivers/drivers.queries";
 import type { CreateDriverRequest, UpdateDriverRequest } from "@/lib/domains/drivers/drivers.types";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";

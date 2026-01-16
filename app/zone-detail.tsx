@@ -12,10 +12,9 @@ import {
   generateWhatsAppMessage,
   shareToWhatsApp,
 } from "@/lib/utils/whatsapp-share";
-import { useAssignDriverToZone } from "@/hooks/use-zones";
+import { useAssignDriverToZone, useZones } from "@/lib/domains/zones/zones.queries";
 import { useOptimizeRoute } from "@/hooks/use-routes";
-import { useZones } from "@/hooks/use-zones";
-import { useDrivers } from "@/hooks/use-drivers";
+import { useDrivers } from "@/lib/domains/drivers/drivers.queries";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";

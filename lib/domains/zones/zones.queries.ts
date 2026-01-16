@@ -7,9 +7,11 @@ import { ZoneClusterer } from "@/lib/clustering/zone-clusterer";
 import { getZonesService } from "@/lib/domains/zones/zones.service";
 import { getOrdersService } from "@/lib/domains/orders/orders.service";
 import type { Zone, CreateZoneRequest } from "@/lib/domains/zones/zones.types";
+import type { Order } from "@/lib/domains/orders/orders.types";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useDrivers } from "@/hooks/use-drivers";
+import { useDrivers } from "@/lib/domains/drivers/drivers.queries";
+import { queryKeys } from "@/lib/react-query/query-keys";
 
 const zoneClusterer = new ZoneClusterer();
 
@@ -23,7 +25,11 @@ export function useZones() {
   const ordersService = getOrdersService();
 
   return useQuery({
-    queryKey: ["zones", drivers],
+    // Fix: Use driver IDs instead of serializing entire drivers array
+    // This prevents serialization bugs and improves cache efficiency
+    queryKey: queryKeys.zones.list({
+      driverIds: drivers?.map((d) => d.id).sort(),
+    }),
     queryFn: async () => {
       // Fetch orders first to populate zone orders
       const orders = await ordersService.getOrders();
@@ -68,8 +74,8 @@ export function useCreateZones() {
     },
     onSuccess: (zones) => {
       // Invalidate zones and orders to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: ["zones"] });
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.zones.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       showToast.success(
         "Zones Created",
         `Created ${zones.length} zones successfully`
@@ -101,7 +107,7 @@ export function useAssignDriverToZone() {
       driverId: string; // Backend driver UUID
     }) => {
       // Get zone to find serverId
-      const zones = queryClient.getQueryData<Zone[]>(["zones"]);
+      const zones = queryClient.getQueryData<Zone[]>(queryKeys.zones.list());
       const zone = zones?.find((z) => z.id === zoneId || z.serverId === zoneId);
       if (!zone?.serverId) {
         throw new Error(`Zone ${zoneId} not found or missing serverId`);
@@ -112,15 +118,19 @@ export function useAssignDriverToZone() {
     },
     onMutate: async ({ zoneId, driverId }) => {
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ["zones"] });
-      await queryClient.cancelQueries({ queryKey: ["orders"] });
+      await queryClient.cancelQueries({ queryKey: queryKeys.zones.all });
+      await queryClient.cancelQueries({ queryKey: queryKeys.orders.all });
 
       // Snapshot previous values for rollback
-      const previousZones = queryClient.getQueryData<Zone[]>(["zones"]);
-      const previousOrders = queryClient.getQueryData<any[]>(["orders"]);
+      const previousZones = queryClient.getQueryData<Zone[]>(
+        queryKeys.zones.list()
+      );
+      const previousOrders = queryClient.getQueryData<Order[]>(
+        queryKeys.orders.list()
+      );
 
       // Optimistically update zones
-      queryClient.setQueryData<Zone[]>(["zones"], (old) => {
+      queryClient.setQueryData<Zone[]>(queryKeys.zones.list(), (old) => {
         if (!old) return old;
         return old.map((zone) => {
           if (zone.id === zoneId || zone.serverId === zoneId) {
@@ -138,7 +148,7 @@ export function useAssignDriverToZone() {
       });
 
       // Optimistically update orders
-      queryClient.setQueryData<any[]>(["orders"], (old) => {
+      queryClient.setQueryData<Order[]>(queryKeys.orders.list(), (old) => {
         if (!old) return old;
         const zone = previousZones?.find(
           (z) => z.id === zoneId || z.serverId === zoneId
@@ -159,10 +169,13 @@ export function useAssignDriverToZone() {
     onError: (error, variables, context) => {
       // Rollback on error
       if (context?.previousZones) {
-        queryClient.setQueryData(["zones"], context.previousZones);
+        queryClient.setQueryData(queryKeys.zones.list(), context.previousZones);
       }
       if (context?.previousOrders) {
-        queryClient.setQueryData(["orders"], context.previousOrders);
+        queryClient.setQueryData(
+          queryKeys.orders.list(),
+          context.previousOrders
+        );
       }
       showToast.error(
         "Assignment Error",
@@ -172,9 +185,8 @@ export function useAssignDriverToZone() {
       );
     },
     onSuccess: () => {
-      // Refetch to ensure consistency with backend
-      queryClient.invalidateQueries({ queryKey: ["zones"] });
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      // NO invalidateQueries needed - we already updated everything optimistically!
+      // The cache is already in sync with the backend operation
       showToast.success(
         "Driver Assigned",
         "Driver assigned to zone successfully"
@@ -182,3 +194,4 @@ export function useAssignDriverToZone() {
     },
   });
 }
+

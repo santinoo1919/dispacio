@@ -7,6 +7,7 @@ import { getDriversService } from "@/lib/domains/drivers/drivers.service";
 import type { Driver, CreateDriverRequest, UpdateDriverRequest } from "@/lib/domains/drivers/drivers.types";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/react-query/query-keys";
 
 /**
  * Strongly typed options for useDrivers hook
@@ -26,7 +27,7 @@ export function useDrivers(options?: UseDriversOptions) {
   const driversService = getDriversService();
 
   return useQuery({
-    queryKey: ["drivers", options],
+    queryKey: queryKeys.drivers.list(options),
     queryFn: () => driversService.getDrivers(options),
   });
 }
@@ -38,7 +39,7 @@ export function useDriver(driverId: string | null | undefined) {
   const driversService = getDriversService();
 
   return useQuery({
-    queryKey: ["drivers", driverId],
+    queryKey: queryKeys.drivers.detail(driverId!),
     queryFn: () => driversService.getDriver(driverId!),
     enabled: !!driverId,
   });
@@ -55,7 +56,7 @@ export function useCreateDriver() {
     mutationFn: (driver: CreateDriverRequest) => driversService.createDriver(driver),
     onSuccess: () => {
       // Invalidate drivers list to refetch
-      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.drivers.all });
       showToast.success("Driver Created", "Driver added successfully");
     },
     onError: (error) => {
@@ -69,6 +70,7 @@ export function useCreateDriver() {
 
 /**
  * Update a driver
+ * Uses optimistic updates and setQueryData for instant UI feedback
  */
 export function useUpdateDriver() {
   const queryClient = useQueryClient();
@@ -82,18 +84,66 @@ export function useUpdateDriver() {
       driverId: string;
       updates: UpdateDriverRequest;
     }) => driversService.updateDriver(driverId, updates),
-    onSuccess: (data, variables) => {
-      // Update cache optimistically
-      queryClient.setQueryData(["drivers", variables.driverId], data);
-      // Invalidate list to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ["drivers"] });
-      showToast.success("Driver Updated", "Driver information updated");
+    onMutate: async ({ driverId, updates }) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: queryKeys.drivers.all });
+
+      // Snapshot previous values for rollback
+      const previousDriver = queryClient.getQueryData<Driver>(
+        queryKeys.drivers.detail(driverId)
+      );
+      const previousDrivers = queryClient.getQueryData<Driver[]>(
+        queryKeys.drivers.list()
+      );
+
+      // Optimistically update detail
+      if (previousDriver) {
+        queryClient.setQueryData<Driver>(queryKeys.drivers.detail(driverId), {
+          ...previousDriver,
+          ...updates,
+        });
+      }
+
+      // Optimistically update in list
+      queryClient.setQueryData<Driver[]>(queryKeys.drivers.list(), (old) =>
+        old?.map((d) => (d.id === driverId ? { ...d, ...updates } : d))
+      );
+
+      return { previousDriver, previousDrivers };
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousDriver) {
+        queryClient.setQueryData(
+          queryKeys.drivers.detail(variables.driverId),
+          context.previousDriver
+        );
+      }
+      if (context?.previousDrivers) {
+        queryClient.setQueryData(
+          queryKeys.drivers.list(),
+          context.previousDrivers
+        );
+      }
       showToast.error(
         "Update Error",
         error instanceof Error ? error.message : "Failed to update driver"
       );
+    },
+    onSuccess: (data, variables) => {
+      // Update with real data from server (in case server computed something)
+      queryClient.setQueryData(
+        queryKeys.drivers.detail(variables.driverId),
+        data
+      );
+
+      // Update in list with real data
+      queryClient.setQueryData<Driver[]>(queryKeys.drivers.list(), (old) =>
+        old?.map((d) => (d.id === variables.driverId ? data : d))
+      );
+
+      // NO invalidateQueries needed - we already have the data!
+      showToast.success("Driver Updated", "Driver information updated");
     },
   });
 }
@@ -109,9 +159,9 @@ export function useDeleteDriver() {
     mutationFn: (driverId: string) => driversService.deleteDriver(driverId),
     onSuccess: (data, driverId) => {
       // Remove from cache
-      queryClient.removeQueries({ queryKey: ["drivers", driverId] });
+      queryClient.removeQueries({ queryKey: queryKeys.drivers.detail(driverId) });
       // Invalidate list to refetch
-      queryClient.invalidateQueries({ queryKey: ["drivers"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.drivers.all });
       showToast.success("Driver Deleted", "Driver removed successfully");
     },
     onError: (error) => {
@@ -122,3 +172,4 @@ export function useDeleteDriver() {
     },
   });
 }
+
