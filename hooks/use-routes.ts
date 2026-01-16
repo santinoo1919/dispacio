@@ -26,8 +26,7 @@ export function useOptimizeRoute() {
       return optimizeRoute(driverId, orderIds);
     },
     onSuccess: (data) => {
-      // Invalidate orders to get updated ranks
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      // Only invalidate zones - orders are accessed through zones
       queryClient.invalidateQueries({ queryKey: queryKeys.zones.all });
       showToast.success(
         "Route Optimized",

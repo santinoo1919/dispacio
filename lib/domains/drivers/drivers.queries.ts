@@ -4,10 +4,14 @@
  */
 
 import { getDriversService } from "@/lib/domains/drivers/drivers.service";
-import type { Driver, CreateDriverRequest, UpdateDriverRequest } from "@/lib/domains/drivers/drivers.types";
+import type {
+  CreateDriverRequest,
+  Driver,
+  UpdateDriverRequest,
+} from "@/lib/domains/drivers/drivers.types";
+import { queryKeys } from "@/lib/react-query/query-keys";
 import { showToast } from "@/lib/utils/toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/react-query/query-keys";
 
 /**
  * Strongly typed options for useDrivers hook
@@ -53,7 +57,8 @@ export function useCreateDriver() {
   const driversService = getDriversService();
 
   return useMutation({
-    mutationFn: (driver: CreateDriverRequest) => driversService.createDriver(driver),
+    mutationFn: (driver: CreateDriverRequest) =>
+      driversService.createDriver(driver),
     onSuccess: () => {
       // Invalidate drivers list to refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.drivers.all });
@@ -159,7 +164,9 @@ export function useDeleteDriver() {
     mutationFn: (driverId: string) => driversService.deleteDriver(driverId),
     onSuccess: (data, driverId) => {
       // Remove from cache
-      queryClient.removeQueries({ queryKey: queryKeys.drivers.detail(driverId) });
+      queryClient.removeQueries({
+        queryKey: queryKeys.drivers.detail(driverId),
+      });
       // Invalidate list to refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.drivers.all });
       showToast.success("Driver Deleted", "Driver removed successfully");
@@ -172,4 +179,3 @@ export function useDeleteDriver() {
     },
   });
 }
-

@@ -1,45 +1,19 @@
 /**
  * React Query hooks for orders
- * Thin layer that wraps OrdersService with React Query
+ * Orders are always accessed through zones - no standalone order queries needed
  */
 
-import { getOrdersService } from "@/lib/domains/orders/orders.service";
 import { isConflictError } from "@/lib/domains/orders/orders.errors";
+import { getOrdersService } from "@/lib/domains/orders/orders.service";
 import type { Order } from "@/lib/domains/orders/orders.types";
-import { showToast } from "@/lib/utils/toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/react-query/query-keys";
 import type { Zone } from "@/lib/domains/zones/zones.types";
-
-/**
- * Fetch all orders or filtered by driver
- * @param driverId Optional frontend driver ID to filter orders
- */
-export function useOrders(driverId?: string) {
-  const ordersService = getOrdersService();
-
-  return useQuery({
-    queryKey: queryKeys.orders.list(driverId ? { driverId } : undefined),
-    queryFn: () => ordersService.getOrders(driverId),
-  });
-}
-
-/**
- * Fetch a single order by ID
- * @param orderId Order UUID from backend (serverId)
- */
-export function useOrder(orderId: string) {
-  const ordersService = getOrdersService();
-
-  return useQuery({
-    queryKey: queryKeys.orders.detail(orderId),
-    queryFn: () => ordersService.getOrder(orderId),
-    enabled: !!orderId,
-  });
-}
+import { queryKeys } from "@/lib/react-query/query-keys";
+import { showToast } from "@/lib/utils/toast";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 /**
  * Bulk create orders from CSV
+ * Only invalidates zones cache (orders are accessed through zones)
  */
 export function useCreateOrders() {
   const queryClient = useQueryClient();
@@ -50,23 +24,27 @@ export function useCreateOrders() {
       return ordersService.createOrders(orders);
     },
     onSuccess: (data) => {
-      // Invalidate orders and zones to refetch fresh data
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      // Only invalidate zones - orders are accessed through zones
       queryClient.invalidateQueries({ queryKey: queryKeys.zones.all });
 
       // Build informative message
       const parts: string[] = [];
       if (data.created > 0) {
-        parts.push(`Created ${data.created} order${data.created !== 1 ? "s" : ""}`);
+        parts.push(
+          `Created ${data.created} order${data.created !== 1 ? "s" : ""}`
+        );
       }
       if (data.skipped > 0) {
-        parts.push(`Skipped ${data.skipped} duplicate${data.skipped !== 1 ? "s" : ""}`);
+        parts.push(
+          `Skipped ${data.skipped} duplicate${data.skipped !== 1 ? "s" : ""}`
+        );
       }
       if (data.failed > 0) {
         parts.push(`Failed ${data.failed}`);
       }
 
-      const message = parts.length > 0 ? parts.join(", ") : "No orders processed";
+      const message =
+        parts.length > 0 ? parts.join(", ") : "No orders processed";
       showToast.success("CSV Upload", message);
     },
     onError: (error) => {
@@ -80,7 +58,7 @@ export function useCreateOrders() {
 
 /**
  * Update a single order with optimistic locking support
- * Uses setQueryData instead of invalidateQueries for instant UI updates
+ * Only updates zones cache (orders are accessed through zones)
  */
 export function useUpdateOrder() {
   const queryClient = useQueryClient();
@@ -98,38 +76,14 @@ export function useUpdateOrder() {
     },
     onMutate: async ({ orderId, updates }) => {
       // Cancel outgoing queries to prevent overwriting optimistic updates
-      await queryClient.cancelQueries({ queryKey: queryKeys.orders.all });
       await queryClient.cancelQueries({ queryKey: queryKeys.zones.all });
 
       // Snapshot previous values for rollback
-      const previousOrder = queryClient.getQueryData<Order>(
-        queryKeys.orders.detail(orderId)
-      );
-      const previousOrders = queryClient.getQueryData<Order[]>(
-        queryKeys.orders.list()
-      );
       const previousZones = queryClient.getQueryData<Zone[]>(
         queryKeys.zones.list()
       );
 
-      // Optimistically update single order detail
-      if (previousOrder) {
-        queryClient.setQueryData<Order>(queryKeys.orders.detail(orderId), {
-          ...previousOrder,
-          ...updates,
-        });
-      }
-
-      // Optimistically update in orders list
-      queryClient.setQueryData<Order[]>(queryKeys.orders.list(), (old) =>
-        old?.map((o) =>
-          o.id === orderId || o.serverId === orderId
-            ? { ...o, ...updates }
-            : o
-        )
-      );
-
-      // Optimistically update in zones
+      // Optimistically update in zones (the only source of truth)
       queryClient.setQueryData<Zone[]>(queryKeys.zones.list(), (old) =>
         old?.map((zone) => ({
           ...zone,
@@ -141,22 +95,10 @@ export function useUpdateOrder() {
         }))
       );
 
-      return { previousOrder, previousOrders, previousZones };
+      return { previousZones };
     },
     onError: (error, variables, context) => {
       // Rollback on error
-      if (context?.previousOrder) {
-        queryClient.setQueryData(
-          queryKeys.orders.detail(variables.orderId),
-          context.previousOrder
-        );
-      }
-      if (context?.previousOrders) {
-        queryClient.setQueryData(
-          queryKeys.orders.list(),
-          context.previousOrders
-        );
-      }
       if (context?.previousZones) {
         queryClient.setQueryData(queryKeys.zones.list(), context.previousZones);
       }
@@ -168,7 +110,6 @@ export function useUpdateOrder() {
           "This order was modified by someone else. Refreshing data..."
         );
         // Invalidate to refetch latest data
-        queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.zones.all });
         return;
       }
@@ -179,22 +120,7 @@ export function useUpdateOrder() {
       );
     },
     onSuccess: (data, variables) => {
-      // Update with real data from server (in case server computed something)
-      queryClient.setQueryData(
-        queryKeys.orders.detail(variables.orderId),
-        data
-      );
-
-      // Update in list with real data
-      queryClient.setQueryData<Order[]>(queryKeys.orders.list(), (old) =>
-        old?.map((o) =>
-          o.id === variables.orderId || o.serverId === variables.orderId
-            ? data
-            : o
-        )
-      );
-
-      // Update in zones with real data
+      // Update zones with real data from server (in case server computed something)
       queryClient.setQueryData<Zone[]>(queryKeys.zones.list(), (old) =>
         old?.map((zone) => ({
           ...zone,
@@ -213,7 +139,7 @@ export function useUpdateOrder() {
 
 /**
  * Bulk assign driver to multiple orders
- * Uses optimistic updates for instant UI feedback
+ * Only updates zones cache (orders are accessed through zones)
  */
 export function useBulkAssignDriver() {
   const queryClient = useQueryClient();
@@ -231,38 +157,27 @@ export function useBulkAssignDriver() {
     },
     onMutate: async ({ orderIds, driverId }) => {
       // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: queryKeys.orders.all });
       await queryClient.cancelQueries({ queryKey: queryKeys.zones.all });
 
       // Snapshot previous values for rollback
-      const previousOrders = queryClient.getQueryData<Order[]>(
-        queryKeys.orders.list()
-      );
       const previousZones = queryClient.getQueryData<Zone[]>(
         queryKeys.zones.list()
       );
 
-      // Optimistically update orders
-      queryClient.setQueryData<Order[]>(queryKeys.orders.list(), (old) =>
-        old?.map((o) =>
-          orderIds.includes(o.serverId || o.id) ? { ...o, driverId } : o
-        )
-      );
-
-      // Optimistically update zones
+      // Optimistically update zones (the only source of truth)
       queryClient.setQueryData<Zone[]>(queryKeys.zones.list(), (old) =>
         old?.map((zone) => {
           const updatedOrders = zone.orders.map((o) =>
             orderIds.includes(o.serverId || o.id) ? { ...o, driverId } : o
           );
-          
+
           // Update assignedDriverId if all orders in zone have the same driver
           const allOrdersInZoneHaveDriver = updatedOrders.every((o) =>
             orderIds.includes(o.serverId || o.id)
               ? o.driverId === driverId
               : true
           );
-          
+
           return {
             ...zone,
             orders: updatedOrders,
@@ -275,16 +190,10 @@ export function useBulkAssignDriver() {
         })
       );
 
-      return { previousOrders, previousZones };
+      return { previousZones };
     },
     onError: (error, variables, context) => {
       // Rollback on error
-      if (context?.previousOrders) {
-        queryClient.setQueryData(
-          queryKeys.orders.list(),
-          context.previousOrders
-        );
-      }
       if (context?.previousZones) {
         queryClient.setQueryData(queryKeys.zones.list(), context.previousZones);
       }
@@ -305,6 +214,7 @@ export function useBulkAssignDriver() {
 
 /**
  * Delete an order
+ * Only updates zones cache (orders are accessed through zones)
  */
 export function useDeleteOrder() {
   const queryClient = useQueryClient();
@@ -316,24 +226,14 @@ export function useDeleteOrder() {
     },
     onMutate: async (orderId) => {
       // Optimistic update: Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: queryKeys.orders.all });
       await queryClient.cancelQueries({ queryKey: queryKeys.zones.all });
 
       // Snapshot previous values for rollback
-      const previousOrders = queryClient.getQueryData<Order[]>(
-        queryKeys.orders.list()
-      );
       const previousZones = queryClient.getQueryData<Zone[]>(
         queryKeys.zones.list()
       );
 
-      // Optimistically remove order from cache
-      queryClient.setQueryData<Order[]>(queryKeys.orders.list(), (old) => {
-        if (!old) return old;
-        return old.filter((o) => o.serverId !== orderId && o.id !== orderId);
-      });
-
-      // Optimistically update zones
+      // Optimistically update zones (the only source of truth)
       queryClient.setQueryData<Zone[]>(queryKeys.zones.list(), (old) => {
         if (!old) return old;
         return old.map((zone) => {
@@ -348,16 +248,10 @@ export function useDeleteOrder() {
         });
       });
 
-      return { previousOrders, previousZones };
+      return { previousZones };
     },
     onError: (error, orderId, context) => {
       // Rollback on error
-      if (context?.previousOrders) {
-        queryClient.setQueryData(
-          queryKeys.orders.list(),
-          context.previousOrders
-        );
-      }
       if (context?.previousZones) {
         queryClient.setQueryData(queryKeys.zones.list(), context.previousZones);
       }
@@ -368,10 +262,8 @@ export function useDeleteOrder() {
     },
     onSuccess: () => {
       // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.zones.all });
       showToast.success("Order Deleted", "Order removed successfully");
     },
   });
 }
-
