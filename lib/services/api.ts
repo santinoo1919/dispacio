@@ -50,21 +50,56 @@ export function isConflictError(error: unknown): error is Error & { status: 409;
 }
 
 /**
- * Make API request with error handling
+ * API Request Options
+ * Extends RequestInit with timeout and signal support
+ */
+export interface ApiRequestOptions extends RequestInit {
+  /**
+   * Request timeout in milliseconds (default: 30000 = 30 seconds)
+   */
+  timeout?: number;
+  /**
+   * AbortSignal for request cancellation (optional)
+   * If provided, timeout will not be applied (use signal for cancellation)
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Make API request with error handling, timeout, and cancellation support
  * Exported for use by domain repositories
+ * 
+ * @param endpoint - API endpoint (e.g., "/api/orders")
+ * @param options - Request options including timeout and signal
+ * @returns Promise resolving to the response data
+ * @throws Error with status code and error details on failure
  */
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiRequestOptions = {}
 ): Promise<T> {
+  const { timeout = 30000, signal, ...fetchOptions } = options;
   const url = `${API_BASE_URL}${endpoint}`;
+
+  // Create AbortController for timeout if no signal provided
+  const controller = signal ? null : new AbortController();
+  const abortSignal = signal || controller?.signal;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  // Set up timeout if no external signal provided
+  if (controller) {
+    timeoutId = setTimeout(() => {
+      controller.abort();
+    }, timeout);
+  }
 
   try {
     const response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
+      signal: abortSignal,
       headers: {
         "Content-Type": "application/json",
-        ...options.headers,
+        ...fetchOptions.headers,
       },
     });
 
@@ -91,12 +126,29 @@ export async function apiRequest<T>(
 
     return data;
   } catch (error) {
+    // Handle timeout/abort
+    if (error instanceof Error && error.name === "AbortError") {
+      if (controller?.signal.aborted && !signal) {
+        throw new Error(
+          `Request timeout: ${endpoint} exceeded ${timeout}ms`
+        );
+      }
+      throw new Error("Request was cancelled");
+    }
+
+    // Handle network errors
     if (error instanceof TypeError && error.message.includes("fetch")) {
       throw new Error(
         `Cannot connect to backend at ${API_BASE_URL}. Is the server running?`
       );
     }
+
     throw error;
+  } finally {
+    // Clean up timeout
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 
