@@ -24,19 +24,21 @@ export interface Zone {
 }
 
 /**
- * Backend API zone format (snake_case)
+ * Backend API zone format
+ * Matches actual backend response - uses camelCase for center object and timestamps
  */
 export interface ApiZone {
   id: string;
   name: string;
-  center_lat: number;
-  center_lng: number;
+  center: {
+    lat: number;
+    lng: number;
+  };
   radius?: number | null;
-  driver_id?: string | null;
-  created_at: string;
-  updated_at?: string | null;
-  // Orders are included in the response but not in the base zone structure
-  orders?: any[]; // Will be transformed separately
+  orders: any[]; // Nested orders array (will be transformed separately)
+  orderCount: number;
+  createdAt?: string;
+  updatedAt?: string | null;
 }
 
 /**

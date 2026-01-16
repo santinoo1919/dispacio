@@ -13,20 +13,20 @@ export function toDomain(apiOrder: ApiOrder): Order {
     id: apiOrder.order_number || apiOrder.id,
     customerName: apiOrder.customer_name,
     address: apiOrder.address,
-    phone: apiOrder.phone,
-    notes: apiOrder.notes,
-    amount: apiOrder.amount,
-    items: apiOrder.items,
+    phone: apiOrder.phone ?? undefined, // Convert null to undefined
+    notes: apiOrder.notes ?? undefined, // Convert null to undefined
+    amount: apiOrder.amount ?? undefined, // Convert null to undefined
+    items: apiOrder.items ?? undefined, // Convert null to undefined
     priority: (apiOrder.priority as "low" | "normal" | "high") || "normal",
     rank: apiOrder.route_rank ?? undefined, // Preserve 0, convert null to undefined
-    driverId: apiOrder.driver_id || undefined, // Driver ID is now backend UUID directly
-    latitude: apiOrder.latitude,
-    longitude: apiOrder.longitude,
-    packageLength: apiOrder.package_length,
-    packageWidth: apiOrder.package_width,
-    packageHeight: apiOrder.package_height,
-    packageWeight: apiOrder.package_weight,
-    packageVolume: apiOrder.package_volume,
+    driverId: apiOrder.driver_id ?? undefined, // Convert null to undefined
+    latitude: apiOrder.latitude ?? undefined, // Convert null to undefined
+    longitude: apiOrder.longitude ?? undefined, // Convert null to undefined
+    packageLength: apiOrder.package_length ?? undefined, // Convert null to undefined
+    packageWidth: apiOrder.package_width ?? undefined, // Convert null to undefined
+    packageHeight: apiOrder.package_height ?? undefined, // Convert null to undefined
+    packageWeight: apiOrder.package_weight ?? undefined, // Convert null to undefined
+    packageVolume: apiOrder.package_volume ?? undefined, // Convert null to undefined
     serverId: apiOrder.id,
     rawData: apiOrder.raw_data || {},
   };

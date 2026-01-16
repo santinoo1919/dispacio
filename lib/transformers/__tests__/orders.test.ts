@@ -22,6 +22,9 @@ describe("toDomain", () => {
       longitude: -74.2,
       driver_id: "backend-driver-uuid",
       route_rank: 3,
+      version: 1,
+      created_at: "2025-01-01T00:00:00.000Z",
+      updated_at: "2025-01-01T00:00:00.000Z",
       raw_data: { any: "thing" },
     };
 
@@ -52,7 +55,25 @@ describe("toDomain", () => {
       order_number: "",
       customer_name: "Jane",
       address: "456 Oak",
-    } as any;
+      phone: null,
+      notes: null,
+      amount: null,
+      items: null,
+      priority: null,
+      package_length: null,
+      package_width: null,
+      package_height: null,
+      package_weight: null,
+      package_volume: null,
+      latitude: null,
+      longitude: null,
+      driver_id: null,
+      route_rank: null,
+      version: 1,
+      created_at: "2025-01-01T00:00:00.000Z",
+      updated_at: "2025-01-01T00:00:00.000Z",
+      raw_data: null,
+    };
     const order = toDomain(api);
     expect(order.id).toBe("uuid-2"); // fallback to id when order_number missing
     expect(order.priority).toBe("normal");
