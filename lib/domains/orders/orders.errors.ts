@@ -2,11 +2,7 @@
  * Orders Domain Error Handling
  */
 
-export interface ConflictError {
-  error: string;
-  message?: string;
-  currentVersion: number;
-}
+import type { ConflictError } from "@/lib/services/api.types";
 
 /**
  * Check if error is a version conflict (409)
