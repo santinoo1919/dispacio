@@ -11,6 +11,12 @@ import type {
   AssignDriverToZoneResponse,
 } from "./zones.types";
 import { apiRequest } from "@/lib/services/api";
+import { validateResponse } from "@/lib/services/api.validation";
+import {
+  GetZonesResponseSchema,
+  CreateZonesResponseSchema,
+  AssignDriverToZoneResponseSchema,
+} from "./zones.schemas";
 
 /**
  * Zones Repository - handles all data access operations
@@ -20,19 +26,21 @@ export class ZonesRepository {
    * Fetch all zones
    */
   async findAll(): Promise<GetZonesResponse> {
-    return apiRequest<GetZonesResponse>("/api/zones");
+    const endpoint = "/api/zones";
+    const response = await apiRequest<unknown>(endpoint);
+    return validateResponse(response, GetZonesResponseSchema, endpoint);
   }
 
   /**
    * Create zones
    */
   async create(zones: CreateZoneRequest[]): Promise<CreateZonesResponse> {
-    // Backend schema expects: { name, center: { lat, lng }, radius?, orderIds }
-    // CreateZoneRequest already matches this format, no transformation needed
-    return apiRequest<CreateZonesResponse>("/api/zones", {
+    const endpoint = "/api/zones";
+    const response = await apiRequest<unknown>(endpoint, {
       method: "POST",
-      data: { zones }, // Axios uses 'data' and auto-serializes JSON
+      data: { zones },
     });
+    return validateResponse(response, CreateZonesResponseSchema, endpoint);
   }
 
   /**
@@ -42,12 +50,15 @@ export class ZonesRepository {
     zoneId: string,
     driverId: string
   ): Promise<AssignDriverToZoneResponse> {
-    return apiRequest<AssignDriverToZoneResponse>(
-      `/api/zones/${zoneId}/assign-driver`,
-      {
-        method: "PUT",
-        data: { driverId }, // Axios uses 'data' and auto-serializes JSON
-      }
+    const endpoint = `/api/zones/${zoneId}/assign-driver`;
+    const response = await apiRequest<unknown>(endpoint, {
+      method: "PUT",
+      data: { driverId },
+    });
+    return validateResponse(
+      response,
+      AssignDriverToZoneResponseSchema,
+      endpoint
     );
   }
 }

@@ -9,6 +9,14 @@ import type {
   CreateOrdersResponse,
 } from "./orders.types";
 import { apiRequest } from "@/lib/services/api";
+import { validateResponse } from "@/lib/services/api.validation";
+import {
+  GetOrdersResponseSchema,
+  CreateOrdersResponseSchema,
+  UpdateOrderResponseSchema,
+  DeleteOrderResponseSchema,
+  BulkAssignDriverResponseSchema,
+} from "./orders.schemas";
 
 /**
  * Orders Repository - handles all data access operations
@@ -21,15 +29,22 @@ export class OrdersRepository {
     const endpoint = backendDriverId
       ? `/api/orders?driver_id=${backendDriverId}`
       : "/api/orders";
-    const response = await apiRequest<{ orders: ApiOrder[] }>(endpoint);
-    return response.orders;
+    const response = await apiRequest<unknown>(endpoint);
+    const validated = validateResponse(
+      response,
+      GetOrdersResponseSchema,
+      endpoint
+    );
+    return validated.orders;
   }
 
   /**
    * Fetch a single order by ID (backend UUID)
    */
   async findById(orderId: string): Promise<ApiOrder> {
-    return apiRequest<ApiOrder>(`/api/orders/${orderId}`);
+    const endpoint = `/api/orders/${orderId}`;
+    const response = await apiRequest<unknown>(endpoint);
+    return validateResponse(response, UpdateOrderResponseSchema, endpoint);
   }
 
   /**
@@ -38,10 +53,16 @@ export class OrdersRepository {
   async create(
     orders: CreateOrderRequest[]
   ): Promise<CreateOrdersResponse> {
-    return apiRequest<CreateOrdersResponse>("/api/orders", {
+    const endpoint = "/api/orders";
+    const response = await apiRequest<unknown>(endpoint, {
       method: "POST",
-      data: { orders }, // Axios uses 'data' and auto-serializes JSON
+      data: { orders },
     });
+    return validateResponse(
+      response,
+      CreateOrdersResponseSchema,
+      endpoint
+    );
   }
 
   /**
@@ -51,10 +72,12 @@ export class OrdersRepository {
     orderId: string,
     updates: Partial<CreateOrderRequest>
   ): Promise<ApiOrder> {
-    return apiRequest<ApiOrder>(`/api/orders/${orderId}`, {
+    const endpoint = `/api/orders/${orderId}`;
+    const response = await apiRequest<unknown>(endpoint, {
       method: "PUT",
-      data: updates, // Axios uses 'data' and auto-serializes JSON
+      data: updates,
     });
+    return validateResponse(response, UpdateOrderResponseSchema, endpoint);
   }
 
   /**
@@ -70,19 +93,27 @@ export class OrdersRepository {
     updated: number;
     orderIds: string[];
   }> {
-    return apiRequest("/api/orders/bulk-assign-driver", {
+    const endpoint = "/api/orders/bulk-assign-driver";
+    const response = await apiRequest<unknown>(endpoint, {
       method: "PUT",
-      data: { orderIds, driverId: backendDriverId }, // Axios uses 'data' and auto-serializes JSON
+      data: { orderIds, driverId: backendDriverId },
     });
+    return validateResponse(
+      response,
+      BulkAssignDriverResponseSchema,
+      endpoint
+    );
   }
 
   /**
    * Delete an order
    */
   async delete(orderId: string): Promise<{ success: boolean; id: string }> {
-    return apiRequest(`/api/orders/${orderId}`, {
+    const endpoint = `/api/orders/${orderId}`;
+    const response = await apiRequest<unknown>(endpoint, {
       method: "DELETE",
     });
+    return validateResponse(response, DeleteOrderResponseSchema, endpoint);
   }
 }
 
