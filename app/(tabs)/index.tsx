@@ -1,7 +1,7 @@
 import { EmptyState } from "@/components/dispatch/empty-state";
 import { ZoneCard } from "@/components/dispatch/zone-card";
 import { ScreenHeader } from "@/components/ui/screen-header";
-import { useZones } from "@/hooks/use-zones";
+import { useZones } from "@/lib/domains/zones/zones.queries";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, Text, View } from "react-native";

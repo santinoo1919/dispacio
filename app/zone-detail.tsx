@@ -12,10 +12,9 @@ import {
   generateWhatsAppMessage,
   shareToWhatsApp,
 } from "@/lib/utils/whatsapp-share";
-import { useAssignDriverToZone } from "@/hooks/use-zones";
+import { useAssignDriverToZone, useZones } from "@/lib/domains/zones/zones.queries";
 import { useOptimizeRoute } from "@/hooks/use-routes";
-import { useZones } from "@/hooks/use-zones";
-import { useDrivers } from "@/hooks/use-drivers";
+import { useDrivers } from "@/lib/domains/drivers/drivers.queries";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
@@ -41,8 +40,12 @@ export default function ZoneDetailScreen() {
   } | null>(null);
 
   const zone = zones?.find((z) => z.id === zoneId);
-  const zoneOrders = zone?.orders ?? [];
   const assignedDriverId = zone?.assignedDriverId;
+
+  // Wrap zoneOrders in useMemo to prevent dependency warnings
+  const zoneOrders = useMemo(() => {
+    return zone?.orders ?? [];
+  }, [zone?.orders]);
 
   // Sort orders by rank (optimized sequence) - orders with rank come first, then by rank value
   const sortedOrders = useMemo(() => {
@@ -104,7 +107,7 @@ export default function ZoneDetailScreen() {
           totalDuration: result.totalDuration,
         });
       }
-    } catch (error) {
+    } catch {
       // Error handling is done in the mutation hook
     }
   };
@@ -130,7 +133,7 @@ export default function ZoneDetailScreen() {
       setTimeout(() => {
         router.back();
       }, 500);
-    } catch (error) {
+    } catch {
       showToast.error("Error", "Failed to open WhatsApp");
     }
   };

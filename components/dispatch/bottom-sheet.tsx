@@ -8,8 +8,6 @@ import {
   Modal,
   View,
   Pressable,
-  Text,
-  TextInput,
   StyleSheet,
   Dimensions,
 } from "react-native";
@@ -17,7 +15,6 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
-  runOnJS,
 } from "react-native-reanimated";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -36,6 +33,7 @@ export function BottomSheet({ visible, onClose, children }: BottomSheetProps) {
     translateY.value = withTiming(visible ? 0 : SHEET_HEIGHT, {
       duration: 300,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const animatedStyle = useAnimatedStyle(() => ({

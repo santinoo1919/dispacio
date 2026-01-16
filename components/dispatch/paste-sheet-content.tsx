@@ -3,7 +3,7 @@
  * Content shown inside the bottom sheet for CSV input
  */
 
-import { View, TextInput, Pressable, Text, ScrollView } from "react-native";
+import { View, TextInput, Pressable, Text } from "react-native";
 
 interface PasteSheetContentProps {
   csvText: string;
