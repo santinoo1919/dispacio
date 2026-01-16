@@ -5,8 +5,7 @@
 
 import { Card } from "@/components/ui/card";
 import { useOptimizeRoute } from "@/hooks/use-routes";
-import { useDrivers } from "@/lib/domains/drivers/drivers.queries";
-import { getDriversService } from "@/lib/domains/drivers/drivers.service";
+import { useDrivers, getDriversService } from "@/lib/domains/drivers";
 import { Zone } from "@/lib/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
