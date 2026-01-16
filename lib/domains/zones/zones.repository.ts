@@ -31,7 +31,7 @@ export class ZonesRepository {
     // CreateZoneRequest already matches this format, no transformation needed
     return apiRequest<CreateZonesResponse>("/api/zones", {
       method: "POST",
-      body: JSON.stringify({ zones }),
+      data: { zones }, // Axios uses 'data' and auto-serializes JSON
     });
   }
 
@@ -46,7 +46,7 @@ export class ZonesRepository {
       `/api/zones/${zoneId}/assign-driver`,
       {
         method: "PUT",
-        body: JSON.stringify({ driverId }),
+        data: { driverId }, // Axios uses 'data' and auto-serializes JSON
       }
     );
   }

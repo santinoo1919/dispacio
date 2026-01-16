@@ -49,7 +49,7 @@ export class DriversRepository {
   async create(driver: CreateDriverRequest): Promise<ApiDriver> {
     return apiRequest<ApiDriver>("/api/drivers", {
       method: "POST",
-      body: JSON.stringify(driver),
+      data: driver, // Axios uses 'data' and auto-serializes JSON
     });
   }
 
@@ -62,7 +62,7 @@ export class DriversRepository {
   ): Promise<ApiDriver> {
     return apiRequest<ApiDriver>(`/api/drivers/${driverId}`, {
       method: "PUT",
-      body: JSON.stringify(updates),
+      data: updates, // Axios uses 'data' and auto-serializes JSON
     });
   }
 

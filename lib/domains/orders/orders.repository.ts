@@ -40,7 +40,7 @@ export class OrdersRepository {
   ): Promise<CreateOrdersResponse> {
     return apiRequest<CreateOrdersResponse>("/api/orders", {
       method: "POST",
-      body: JSON.stringify({ orders }),
+      data: { orders }, // Axios uses 'data' and auto-serializes JSON
     });
   }
 
@@ -53,7 +53,7 @@ export class OrdersRepository {
   ): Promise<ApiOrder> {
     return apiRequest<ApiOrder>(`/api/orders/${orderId}`, {
       method: "PUT",
-      body: JSON.stringify(updates),
+      data: updates, // Axios uses 'data' and auto-serializes JSON
     });
   }
 
@@ -72,7 +72,7 @@ export class OrdersRepository {
   }> {
     return apiRequest("/api/orders/bulk-assign-driver", {
       method: "PUT",
-      body: JSON.stringify({ orderIds, driverId: backendDriverId }),
+      data: { orderIds, driverId: backendDriverId }, // Axios uses 'data' and auto-serializes JSON
     });
   }
 

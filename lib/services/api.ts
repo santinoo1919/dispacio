@@ -1,7 +1,10 @@
 /**
  * API Client Service
  * HTTP client for calling Fastify backend endpoints
+ * Uses axios for robust error handling, interceptors, and request cancellation
  */
+
+import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 
 // API base URL Configuration
 // 
@@ -12,6 +15,81 @@
 //
 // Create .env.local for local overrides (gitignored)
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000";
+
+/**
+ * Create axios instance with default configuration
+ */
+const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000, // 30 seconds default timeout
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+/**
+ * Request interceptor - add auth headers, logging, etc.
+ */
+apiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    // Add any auth tokens here if needed
+    // const token = getAuthToken();
+    // if (token) {
+    //   config.headers.Authorization = `Bearer ${token}`;
+    // }
+
+    // Log request in development
+    if (__DEV__) {
+      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`);
+    }
+
+    return config;
+  },
+  (error) => {
+    // Handle request error
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Response interceptor - handle errors globally
+ */
+apiClient.interceptors.response.use(
+  (response) => {
+    // Return data directly (axios wraps it in response.data)
+    return response.data;
+  },
+  (error: AxiosError) => {
+    // Handle axios errors
+    if (error.response) {
+      // Server responded with error status
+      const status = error.response.status;
+      const data = error.response.data as any;
+      
+      const errorMessage = data?.error || data?.message || `HTTP ${status}`;
+      const fullError = new Error(errorMessage);
+      (fullError as any).status = status;
+      (fullError as any).data = data;
+      (fullError as any).endpoint = error.config?.url;
+      
+      return Promise.reject(fullError);
+    } else if (error.request) {
+      // Request made but no response (network error, timeout, etc.)
+      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+        return Promise.reject(
+          new Error(`Request timeout: ${error.config?.url} exceeded ${error.config?.timeout}ms`)
+        );
+      }
+      
+      return Promise.reject(
+        new Error(`Cannot connect to backend at ${API_BASE_URL}. Is the server running?`)
+      );
+    } else {
+      // Something else happened
+      return Promise.reject(error);
+    }
+  }
+);
 
 /**
  * Response from route optimization endpoint
@@ -51,26 +129,27 @@ export function isConflictError(error: unknown): error is Error & { status: 409;
 
 /**
  * API Request Options
- * Extends RequestInit with timeout and signal support
+ * Extends AxiosRequestConfig for type-safe request options
  */
-export interface ApiRequestOptions extends RequestInit {
+export interface ApiRequestOptions extends Omit<AxiosRequestConfig, "url" | "baseURL"> {
   /**
    * Request timeout in milliseconds (default: 30000 = 30 seconds)
+   * Can be overridden per request
    */
   timeout?: number;
   /**
    * AbortSignal for request cancellation (optional)
-   * If provided, timeout will not be applied (use signal for cancellation)
+   * Axios supports this natively via signal property
    */
   signal?: AbortSignal;
 }
 
 /**
  * Make API request with error handling, timeout, and cancellation support
- * Exported for use by domain repositories
+ * Uses axios for robust HTTP client functionality
  * 
  * @param endpoint - API endpoint (e.g., "/api/orders")
- * @param options - Request options including timeout and signal
+ * @param options - Request options including method, body, headers, timeout, signal
  * @returns Promise resolving to the response data
  * @throws Error with status code and error details on failure
  */
@@ -78,77 +157,25 @@ export async function apiRequest<T>(
   endpoint: string,
   options: ApiRequestOptions = {}
 ): Promise<T> {
-  const { timeout = 30000, signal, ...fetchOptions } = options;
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  // Create AbortController for timeout if no signal provided
-  const controller = signal ? null : new AbortController();
-  const abortSignal = signal || controller?.signal;
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  // Set up timeout if no external signal provided
-  if (controller) {
-    timeoutId = setTimeout(() => {
-      controller.abort();
-    }, timeout);
-  }
+  const { method = "GET", data, headers, timeout, signal, ...restOptions } = options;
 
   try {
-    const response = await fetch(url, {
-      ...fetchOptions,
-      signal: abortSignal,
-      headers: {
-        "Content-Type": "application/json",
-        ...fetchOptions.headers,
-      },
+    const response = await apiClient.request<T>({
+      url: endpoint,
+      method,
+      data, // Axios uses 'data' instead of 'body'
+      headers,
+      timeout,
+      signal,
+      ...restOptions,
     });
 
-    let data;
-    try {
-      data = await response.json();
-    } catch {
-      // If response is not JSON, get text
-      const text = await response.text();
-      throw new Error(
-        `API returned non-JSON: ${text} (Status: ${response.status})`
-      );
-    }
-
-    if (!response.ok) {
-      const errorMessage =
-        data?.error || data?.message || `HTTP ${response.status}`;
-      const fullError = new Error(errorMessage);
-      (fullError as any).status = response.status;
-      (fullError as any).data = data;
-      (fullError as any).endpoint = endpoint;
-      throw fullError;
-    }
-
-    return data;
+    // Response interceptor already extracts response.data
+    return response as T;
   } catch (error) {
-    // Handle timeout/abort
-    if (error instanceof Error && error.name === "AbortError") {
-      if (controller?.signal.aborted && !signal) {
-        throw new Error(
-          `Request timeout: ${endpoint} exceeded ${timeout}ms`
-        );
-      }
-      throw new Error("Request was cancelled");
-    }
-
-    // Handle network errors
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      throw new Error(
-        `Cannot connect to backend at ${API_BASE_URL}. Is the server running?`
-      );
-    }
-
+    // Error is already handled by response interceptor
+    // Re-throw to maintain error structure
     throw error;
-  } finally {
-    // Clean up timeout
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
   }
 }
 
@@ -174,7 +201,7 @@ export async function optimizeRoute(
 ): Promise<OptimizeRouteResponse> {
   return apiRequest("/api/routes/optimize", {
     method: "POST",
-    body: JSON.stringify({ driverId, orderIds }),
+    data: { driverId, orderIds }, // Axios uses 'data' instead of 'body', and auto-serializes JSON
   });
 }
 
